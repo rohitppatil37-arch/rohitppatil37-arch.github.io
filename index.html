@@ -539,55 +539,154 @@ function setupVoiceRecognition(recognition) {
   });
 }
 
-function startVoiceRecognition(recognition, indicator) {
-  indicator.textContent = "ऐकत आहे... बोला";
-  indicator.style.color = "blue";
+// Enhanced voice recognition with debugging
+async function startVoiceRecognition() {
+  const indicator = document.getElementById('locIndicator');
+  const micButton = document.getElementById('micLocation');
+  
+  console.log("Start voice recognition called");
   
   try {
+    // Clear previous messages
+    indicator.textContent = "";
+    
+    // Check if speech recognition is available
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      throw new Error('Speech recognition not supported');
+    }
+    
+    console.log("Speech recognition API available");
+    
+    // Request microphone permission first
+    console.log("Requesting microphone permission...");
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    
+    console.log("Microphone permission granted");
+    
+    // Stop the stream immediately
+    stream.getTracks().forEach(track => track.stop());
+    
+    // Create new recognition instance each time
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    
+    // Set language - try multiple options
+    recognition.lang = 'mr-IN'; // Marathi India
+    console.log("Recognition language set to:", recognition.lang);
+    
+    indicator.textContent = "ऐकत आहे... बोला आता";
+    indicator.style.color = "blue";
+    micButton.style.background = "#e3f2fd";
+    
+    // Add event listeners
+    recognition.onstart = function() {
+      console.log("Speech recognition started");
+      indicator.textContent = "ऐकत आहे... बोला";
+      indicator.style.color = "blue";
+    };
+    
+    recognition.onspeechstart = function() {
+      console.log("Speech detected");
+      indicator.textContent = "आवाज ऐकू आला...";
+    };
+    
+    recognition.onsoundstart = function() {
+      console.log("Sound detected");
+    };
+    
+    recognition.onresult = function(event) {
+      console.log("Recognition result received");
+      const result = event.results[0][0];
+      const transcript = result.transcript;
+      const confidence = result.confidence;
+      
+      console.log("Transcript:", transcript);
+      console.log("Confidence:", confidence);
+      
+      const processedText = processVoiceInput(transcript);
+      document.getElementById('locationFromTo').value = processedText;
+      
+      indicator.textContent = `ओळखले! (${Math.round(confidence * 100)}%)`;
+      indicator.style.color = "green";
+      micButton.style.background = "";
+      
+      setTimeout(() => {
+        indicator.textContent = "";
+      }, 3000);
+    };
+    
+    recognition.onerror = function(event) {
+      console.error("Speech recognition error:", event.error);
+      indicator.textContent = `त्रुटी: ${getErrorMessage(event.error)}`;
+      indicator.style.color = "red";
+      micButton.style.background = "";
+      
+      // Show detailed error in console
+      if (event.error === 'no-speech') {
+        console.log("No speech detected - user might not have spoken");
+      } else if (event.error === 'audio-capture') {
+        console.log("Audio capture issue - check microphone");
+      }
+      
+      setTimeout(() => {
+        indicator.textContent = "";
+      }, 4000);
+    };
+    
+    recognition.onend = function() {
+      console.log("Speech recognition ended");
+      micButton.style.background = "";
+      
+      // If no error occurred but no result either
+      if (indicator.textContent.includes("ऐकत आहे")) {
+        indicator.textContent = "आवाज ऐकू आला नाही. पुन्हा प्रयत्न करा.";
+        indicator.style.color = "orange";
+        
+        setTimeout(() => {
+          indicator.textContent = "";
+        }, 3000);
+      }
+    };
+    
+    // Start recognition with timeout
+    console.log("Starting recognition...");
     recognition.start();
-  } catch (error) {
-    indicator.textContent = "सुरू करण्यात त्रुटी";
-    indicator.style.color = "red";
-  }
-  
-  recognition.onresult = function(event) {
-    const transcript = event.results[0][0].transcript;
-    const processedText = processVoiceInput(transcript);
-    document.getElementById('locationFromTo').value = processedText;
     
-    indicator.textContent = "ओळखले!";
-    indicator.style.color = "green";
-    
+    // Auto-stop after 10 seconds if no speech
     setTimeout(() => {
-      indicator.textContent = "";
-    }, 2000);
-  };
-  
-  recognition.onerror = function(event) {
-    handleRecognitionError(event.error, indicator);
-  };
-  
-  recognition.onend = function() {
-    // Cleanup if needed
-  };
+      if (indicator.textContent.includes("ऐकत आहे")) {
+        recognition.stop();
+        console.log("Recognition timeout - no speech detected");
+      }
+    }, 10000);
+    
+  } catch (error) {
+    console.error("Voice recognition setup error:", error);
+    handleRecognitionError(error, indicator);
+  }
 }
 
-function handleRecognitionError(error, indicator) {
-  console.error("Voice recognition error:", error);
-  
+function getErrorMessage(error) {
   const errorMessages = {
+    'no-speech': 'आवाज ऐकू आला नाही',
+    'audio-capture': 'मायक्रोफोन सापडला नाही',
     'not-allowed': 'मायक्रोफोन परवानगी नाकारली',
-    'audio-capture': 'मायक्रोफोन उपलब्ध नाही',
     'network': 'नेटवर्क त्रुटी',
-    'no-speech': 'आवाज ऐकू आला नाही'
+    'service-not-allowed': 'सेवा उपलब्ध नाही',
+    'bad-grammar': 'व्याकरण त्रुटी',
+    'language-not-supported': 'भाषा सपोर्ट नाही'
   };
   
-  indicator.textContent = errorMessages[error] || 'त्रुटी झाली';
-  indicator.style.color = "red";
-  
-  setTimeout(() => {
-    indicator.textContent = "";
-  }, 3000);
+  return errorMessages[error] || `त्रुटी: ${error}`;
 }
 
 function showAdminLogin() {
