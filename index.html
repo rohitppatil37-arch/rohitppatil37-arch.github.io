@@ -1159,11 +1159,12 @@
           }
         };
 
-        btn.addEventListener("click", function (e) {
+        // Unified handler function
+        function handleMicClick(e) {
           e.preventDefault();
           e.stopPropagation();
 
-          console.log("🖱️ Mic button clicked");
+          console.log("🖱️ Mic button clicked/tapped");
           console.log(
             "Current state - isRecognitionActive:",
             isRecognitionActive
@@ -1198,11 +1199,11 @@
               btn.classList.remove("recording");
             }
           }
-        });
+        }
 
-        btn.addEventListener("touchend", function (e) {
-          e.preventDefault();
-        });
+        // Add both click and touchstart listeners
+        btn.addEventListener("click", handleMicClick);
+        btn.addEventListener("touchstart", handleMicClick, { passive: false });
 
         console.log("✅ Voice input initialized successfully");
       }
