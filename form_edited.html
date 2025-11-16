@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>📝 मातीकाम प्रगती — मशीन</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --card-radius:14px;
+      --glass-bg: rgba(255,255,255,0.6);
+      --accent1: #06b6d4;
+      --accent2: #7c3aed;
+      --muted: #5b6570;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:"Noto Sans Devanagari", system-ui, sans-serif;
+      background: linear-gradient(135deg,#e6f0ff 0%, #f7fbff 60%);
+      padding:28px;
+      color:#0b1723;
+      -webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:20px;}
+    @media(max-width:1000px){ .wrap{grid-template-columns:1fr} }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.6));
+      border-radius:var(--card-radius);
+      padding:18px;
+      box-shadow: 0 10px 30px rgba(11,20,35,0.08);
+      border:1px solid rgba(11,20,35,0.04);
+      backdrop-filter: blur(6px) saturate(120%);
+    }
+    .hero{display:flex;gap:12px;align-items:center}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:24px}
+    h1{margin:0;font-size:18px}
+    p.lead{margin:6px 0 14px;color:var(--muted);font-size:13px}
+
+    form .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(max-width:720px){ form .grid{grid-template-columns:1fr} }
+    label{display:block;font-weight:700;font-size:13px;margin-bottom:6px}
+    input[type="text"], input[type="number"], input[type="time"], select, textarea, input[type="date"]{
+      width:100%; padding:10px 12px;border-radius:10px;border:1px solid rgba(11,20,35,0.06); background:rgba(255,255,255,0.95); font-size:14px; outline:none;
+      transition: box-shadow .12s, transform .08s;
+    }
+    input:focus, select:focus, textarea:focus{box-shadow:0 8px 20px rgba(99,102,241,0.12); transform:translateY(-2px); border-color: rgba(99,102,241,0.45);}
+    .full{grid-column:1/-1}
+
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .actions{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:800;color:white;background:linear-gradient(90deg,var(--accent1),var(--accent2));box-shadow:0 10px 28px rgba(99,102,241,0.14)}
+    .btn.ghost{background:transparent;color:#0b1723;border:1px solid rgba(11,20,35,0.06)}
+    .small{font-size:13px;color:var(--muted)}
+
+    .dash-col{display:flex;flex-direction:column;gap:12px;position:sticky;top:20px}
+    .dash-card{padding:14px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.65),rgba(255,255,255,0.55));border:1px solid rgba(11,20,35,0.04)}
+    .big{font-size:20px;font-weight:900;color:#0b3a66}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid rgba(11,20,35,0.06);padding:8px;text-align:center;font-size:13px}
+    th{background:rgba(11,20,35,0.04)}
+    .green{color:green;font-weight:700}
+    .red{color:red;font-weight:700}
+    footer.note{margin-top:10px;font-size:12px;color:var(--muted)}
+    .chart-wrap{overflow-x:auto}
+.glow {
+  box-shadow: 0 0 12px rgba(0, 200, 0, 0.6);
+  transition: box-shadow 0.5s ease-out;
+}
+/* ---------- Success Popup ---------- */
+.popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  z-index: 9999;
+}
+.popup.show {
+  visibility: visible;
+  opacity: 1;
+}
+.popup-content {
+  background: #ffffff;
+  padding: 20px 26px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 360px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  transform: scale(0.8);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+.popup.show .popup-content {
+  transform: scale(1);
+  opacity: 1;
+}
+.popup-content h2 { margin:0 0 8px; color: #0b8a2f; font-size:18px; }
+.popup-content p  { margin:0; font-size:14px; color:#223344; }
+/* --- Success Check Animation --- */
+.checkmark-circle {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  margin-bottom: 12px;
+}
+.checkmark-circle .background {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #4caf50;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.checkmark {
+  width: 28px;
+  height: 56px;
+  border-right: 6px solid white;
+  border-bottom: 6px solid white;
+  transform: rotate(45deg) scale(0.5);
+  position: absolute;
+  top: 12px;
+  left: 24px;
+  opacity: 0;
+}
+.checkmark.draw {
+  animation: checkmark 0.6s ease forwards;
+  animation-delay: 0.2s;
+}
+@keyframes checkmark {
+  from { opacity: 0; transform: rotate(45deg) scale(0.5); }
+  to   { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+
+/* Summary heading style */
+.summary-heading {
+  margin: 10px 0;
+  text-align: center;
+  color: #0b3a66;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Responsive table wrapper for summary */
+.table-container {
+  width: 100%;
+  overflow-x: auto;   /* मोबाईलवर scroll येईल */
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.table-container table {
+  min-width: 400px;   /* टेबलचा आकार fix */
+}
+  .mic-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid rgba(11,20,35,0.06);background:transparent;cursor:pointer;margin-left:8px}
+  .mic-btn.recording{box-shadow:0 0 10px rgba(99,102,241,0.25);background:rgba(99,102,241,0.06)}
+  .mic-indicator{font-size:12px;color:#0b3a66;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div id="formPage" class="wrap">
+  <div class="card">
+    <div class="hero">
+      <div class="logo">क</div>
+      <div>
+        <h1>📝 मातीकाम प्रगती — मशीन</h1>
+        <p class="lead">सर्व माहिती मराठीत नीट पणे भरावी</p>
+      </div>
+    </div>
+
+    <!-- --- FORM --- -->
+    <form id="mainForm" autocomplete="off" novalidate>
+      <div class="grid">
+        <div>
+          <label for="todayDate">📅 आजचा दिनांक</label>
+          <input id="todayDate" type="date" required>
+        </div>
+
+        <div>
+          <label for="workType">🎛 कामाचा प्रकार</label>
+          <select id="workType" required>
+            <option value="" disabled selected>कामाचा प्रकार निवडा...</option>
+            <option value="कालवा स्वच्छता">कालवा स्वच्छता</option>
+            <option value="मातीकाम">मातीकाम</option>
+          </select>
+          <div class="hint">प्रकल्पाच्या यादीसाठी कामाचा प्रकार निवडा</div>
+        </div>
+
+        <div>
+          <label for="projectName">🏗 प्रकल्पाचे नाव</label>
+          <select id="projectName" required>
+            <option value="" disabled selected>प्रकल्पाचे नाव निवडा...</option>
+          </select>
+        </div>
+<div>
+  <label for="machineType">⚙️ सयंत्राचा प्रकार</label>
+  <select id="machineType" required>
+  <option value="" disabled selected>सयंत्राचा प्रकार निवडा...</option>
+  <option value="डोझर/एक्स्कॅव्हेटर">डोझर/एक्स्कॅव्हेटर</option>
+  <option value="टिपर">टिपर</option>
+  <option value="ट्रान्सपोर्टर">ट्रान्सपोर्टर</option>
+  <option value="युटिलिटी वाहने">युटिलिटी वाहने</option>
+</select>
+</div>
+
+        <div>
+  <label for="driver">👷 चालकाचे नाव</label>
+  <select id="driver" required>
+    <option value="" disabled selected>चालक निवडा...</option>
+    <option>राजेंद्र नागू जाधव</option>
+    <option>राजेंद्र कदम</option>
+    <option>निलेश मारुती चव्हाण</option>
+    <option>मुबारक इस्माईल हडपोलकर</option>
+    <option>रवींद्र तुकाराम देसाई</option>
+    <option>सुरेश पांडुरंग बागवे</option>
+    <option>सुरेश नारायण निंबाळकर</option>
+    <option>भागवत मोहन सुळ</option>
+    <option>मोहसीन इक्बाल सय्यद</option>
+    <option>सरफराझ अफसार शेख</option>
+  </select>
+</div>
+
+
+        <div>
+  <label for="machine">📋 सयंत्राचे नाव</label>
+  <select id="machine" required>
+    <option value="" disabled selected>सयंत्र निवडा...</option>
+  </select>
+</div>
+
+
+        <div class="full">
+  <label for="dieselQty">⛽ आज किती डिझेल भरले (लिटर मध्ये)</label>
+  <input id="dieselQty" type="number" min="0" step="0.1" placeholder="उदा. 25.5 आणि डिझेल भरले नसेल तर 0 लिहा" required >
+  <div class="hint">दशांश स्वीकारले जातील (उदा. 12.5)</div>
+</div>
+
+<div>
+  <label for="dieselTime">🕒 डिझेल भरण्याची वेळ</label>
+  <input id="dieselTime" type="time" placeholder="डिझेल भरले नसेल तर हा प्रश्न वगळा" required>
+</div>
+
+<div>
+  <label for="dieselReading">📟 डिझेल भरण्यावेळी Dashboard Reading (तास/km)</label>
+  <input id="dieselReading" type="number" placeholder="उदा. 12345" required>
+</div>
+
+<div>
+  <label for="startReading">▶️ काम सुरू करतानाचे Dashboard Reading (तास/km)</label>
+  <input id="startReading" type="number" placeholder="उदा. 500 किंवा 12000">
+</div>
+
+<div>
+  <label for="endReading">⏹ काम थांबवतानाचे Dashboard Reading (तास/km)</label>
+  <input id="endReading" type="number" placeholder="उदा. 510 किंवा 12050">
+</div>
+
+<div class="full">
+  <label for="totalHoursReading">⚡ Dashboard नुसार आजचे एकूण तास / किमी</label>
+  <input id="totalHoursReading" type="text" placeholder="🔄 गणना आपोआप होईल" readonly>
+  <div class="hint">endReading - startReading = आजचा एकूण तास / किमी</div>
+</div>
+
+<!-- Merged From→To + TripCount field (replaces extraFields + tipperTripsField) -->
+<div id="locationWrapper" class="full" style="display:none">
+  <label for="locationFromTo">📍 From → To (उदा. "साइट A - डंपयार्ड")</label>
+  <div style="display:flex;align-items:center;gap:8px">
+    <input id="locationFromTo" type="text" placeholder="उदा. साइट A - डंपयार्ड" style="flex:1" />
+    <button type="button" id="micLocation" class="mic-btn" title="व्हॉइसने भरा">🎙️</button>
+    <span id="locIndicator" class="mic-indicator"></span>
+  </div>
+  <div class="hint">ठिकाणासाठी बोला — \"साइट A ते डंपयार्ड\" किंवा \"साइट A - डंपयार्ड\".</div>
+
+  <label for="tripCount" style="margin-top:8px">🚛 ट्रिप संख्या (उदा. 5)</label>
+  <input id="tripCount" type="number" min="0" placeholder="उदा. 5" />
+  <div class="hint">व्हॉइस आयनपुटने संख्या सापरल्यास auto-fill होईल; नसेल तर इथे भरा.</div>
+</div>
+
+
+
+
+
+        <div>
+          <label for="shift1Start">🌅 पहिला Shift सुरू करण्याची वेळ</label>
+          <input id="shift1Start" type="time">
+        </div>
+        <div>
+          <label for="shift1End">🌇 पहिला Shift थांबवण्याची वेळ</label>
+          <input id="shift1End" type="time">
+        </div>
+
+        <div>
+          <label for="shift2Start">🌙 दुसरा Shift सुरू करण्याची वेळ</label>
+          <input id="shift2Start" type="time">
+        </div>
+        <div>
+          <label for="shift2End">🌌 दुसरा Shift थांबवण्याची वेळ</label>
+          <input id="shift2End" type="time">
+        </div>
+
+        <div class="full">
+          <label for="totalShiftHours">🕓 शिफ्टनुसार एकूण कामाचे तास</label>
+          <input id="totalShiftHours" type="text" placeholder="🔄 गणना आपोआप होईल" readonly>
+        </div>
+      </div>
+
+      <div class="actions full">
+  <button type="button" class="btn" id="submitBtn">✅ सबमिट करा</button>
+  <button type="button" class="btn" id="resetBtn">♻️ रीसेट</button>
+  <button type="button" class="btn" onclick="redirectToDashboard()">📊 Dashboard पाहा</button>
+  <button type="button" class="btn" onclick="showAdminLogin()">🔑 Admin Login</button>
+</div>
+
+</div>
+
+<!-- ✅ नोट आता live clock च्या वर -->
+<div class="small" style="margin-top:8px" id="status">⚠️ सर्व माहिती भरून 'सबमिट करा' दाबा.</div>
+
+<!-- ✅ live clock खाली ठेवलेलं -->
+<div class="small" style="margin-top:12px; text-align:center">
+  🕘 वेळ: <span id="nowStamp">—</span>
+</div>
+
+
+    </form>
+    </div> <!-- end .card -->
+</div> <!-- end #formPage -->
+
+  <!-- PAGE 2: DASHBOARD -->
+<div id="dashboardPage" class="wrap" style="display:none">
+  <div class="actions full" style="justify-content:center; margin-top:16px">
+  <button type="button" class="btn" onclick="showFormPage()">📝 परत Form पाहा</button>
+</div>
+
+
+  <!-- --- DASHBOARD --- -->
+<div class="dash-col">
+  <div id="summaryDiv" class="dash-card card" style="margin-top:16px;">
+    🔄 गणना करत आहे...
+  </div>
+  <div class="dash-card card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="small">📊 माझा मशीन डॅशबोर्ड</div>
+        <div style="font-weight:800;margin-top:8px">फक्त निवडलेल्या मशीनची माहिती</div>
+      </div>
+      <div style="font-size:22px;color:#0b3a66;font-weight:900">⛽</div>
+    </div>
+
+    <!-- ✅ Step 1: Machine Type -->
+    <div style="margin-top:12px">
+      <label>⚙️ सयंत्राचा प्रकार</label>
+      <select id="dashMachineType">
+        <option value="">--- प्रकार निवडा ---</option>
+        <option value="डोझर/एक्स्कॅव्हेटर">डोझर/एक्स्कॅव्हेटर</option>
+        <option value="टिपर">टिपर</option>
+        <option value="ट्रान्सपोर्टर">ट्रान्सपोर्टर</option>
+        <option value="युटिलिटी वाहने">युटिलिटी वाहने</option>
+      </select>
+    </div>
+
+    <!-- ✅ Step 2: Machine / Vehicle Name -->
+    <div style="margin-top:12px">
+      <label>📋 मशीन / वाहन</label>
+      <select id="dashMachine">
+        <option value="">--- मशीन निवडा ---</option>
+      </select>
+    </div>
+
+    <!-- ✅ Step 3: Date Range -->
+    <div style="margin-top:12px">
+      <label>📆 सुरुवातीची तारीख</label>
+      <input type="date" id="startDate">
+    </div>
+    <div style="margin-top:8px">
+      <label>📆 शेवटची तारीख</label>
+      <input type="date" id="endDate">
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn" id="dashFetchBtn">🔁 अपडेट</button>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed rgba(11,20,35,0.06);margin:12px 0">
+
+    <div class="small">🗓 कालावधी: चालू महिन्याच्या 1 तारखेपासून आजपर्यंत</div>
+    <div class="big" id="dashTotal">⏳ लोड करत आहे...</div>
+    <div class="small" style="margin-top:8px">🧾 नोंदी: <span id="dashCount">0</span></div>
+    
+    <div class="table-container">
+      <table id="dashTable" border="1" style="width:100%; margin-top:20px;">
+        <thead>
+          <tr>
+            <th>मशीन</th>
+            <th>काम (तास / किमी)</th>
+            <th>Actual डिझेल (लिटर)</th>
+            <th>Allowed (लिटर)</th>
+            <th>टीप</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="dash-card card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div class="small">⚖️ Actual vs Allowed</div><div style="font-weight:800;margin-top:6px">मशीन नुसार तुलना</div></div>
+        <div style="font-size:20px">📈</div>
+      </div>
+      <div class="chart-wrap" style="margin-top:12px">
+        <canvas id="consumptionGraph" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: ADMIN REPORTS -->
+<div id="adminPage" class="wrap" style="display:none">
+  <div class="card">
+    <h2>📑 Download Reports</h2>
+
+    <!-- ===== Monthly Report Section ===== -->
+    <h3 style="margin-top:20px; color:#0b3a66">🗓 Download Monthly Report</h3>
+    <label for="reportMonth">📅 Select Month & Year</label>
+    <input id="reportMonth" type="month">
+    <button class="btn" style="margin-top:10px" onclick="generateMonthlyReport()">📥 Download Monthly Report</button>
+    <div id="monthlyReportStatus" class="small" style="margin-top:12px"></div>
+    <div id="monthlyReportLink" style="margin-top:12px"></div>
+
+    <hr style="margin:20px 0">
+
+    <!-- ===== Three-Month (Quarterly) Report Section ===== -->
+    <h3 style="margin-top:20px; color:#0b3a66">📊 Download Three-Month Report</h3>
+    <label for="quarterYear">📅 Select Year</label>
+    <input id="quarterYear" type="number" placeholder="उदा. 2025" min="2020" max="2100">
+
+    <label for="quarterSelect" style="margin-top:10px">📆 Select Quarter</label>
+    <select id="quarterSelect">
+      <option value="">--- Select Quarter ---</option>
+      <option value="Q1">January – March</option>
+      <option value="Q2">April – June</option>
+      <option value="Q3">July – September</option>
+      <option value="Q4">October – December</option>
+    </select>
+
+    <button class="btn" style="margin-top:10px" onclick="generateQuarterlyReport()">📥 Download Three-Month Report</button>
+    <div id="quarterlyReportStatus" class="small" style="margin-top:12px"></div>
+    <div id="quarterlyReportLink" style="margin-top:12px"></div>
+
+    <hr style="margin:20px 0">
+
+    <!-- ===== Pending Expenses Section ===== -->
+    <h3 style="margin-top:20px; color:#0b3a66">💰 Download प्रलंबित खर्च अहवाल</h3>
+    <label for="expenseYear">📅 Select Year</label>
+    <input id="expenseYear" type="number" placeholder="उदा. 2025" min="2020" max="2100">
+
+    <label for="expenseQuarter" style="margin-top:10px">📆 Select Quarter</label>
+    <select id="expenseQuarter">
+      <option value="">--- Select Quarter ---</option>
+      <option value="Q1">January – March</option>
+      <option value="Q2">April – June</option>
+      <option value="Q3">July – September</option>
+      <option value="Q4">October – December</option>
+    </select>
+
+    <button class="btn" style="margin-top:10px" onclick="generateExpenseReport()">📥 Download Expense Report</button>
+    <div id="expenseReportStatus" class="small" style="margin-top:12px"></div>
+    <div id="expenseReportLink" style="margin-top:12px"></div>
+
+    <div class="actions" style="margin-top:20px">
+      <button class="btn ghost" onclick="backToForm()">⬅️ Back</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+/* ---------- Admin Login + Reports Page ---------- */
+const ADMIN_CODE = "123456";   // ✅ तुझा fixed 6-digit code इथे टाक
+// Mobile-optimized voice input initialization
+
+document.addEventListener('DOMContentLoaded', function() {
+  const micButton = document.getElementById('micLocation');
+  const locationInput = document.getElementById('locationFromTo');
+  
+  if (!micButton) return;
+  
+  // Check device type
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // Add mobile-specific attributes
+    micButton.setAttribute('aria-label', 'व्हॉइस इनपुट सुरू करा');
+  }
+  
+  // Initialize voice recognition
+  initializeMobileVoiceInput();
+});
+
+function initializeMobileVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (!SpeechRecognition) {
+    // Fallback for unsupported browsers
+    document.getElementById('micLocation').style.display = 'none';
+    document.querySelector('.hint').textContent += " (व्हॉइस इनपुट सपोर्ट नाही)";
+    return;
+  }
+  
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.lang = 'mr-IN'; // Prioritize Marathi
+  recognition.interimResults = false;
+  
+  setupVoiceRecognition(recognition);
+}
+
+function setupVoiceRecognition(recognition) {
+  const micButton = document.getElementById('micLocation');
+  const indicator = document.getElementById('locIndicator');
+  
+  micButton.addEventListener('click', function() {
+    startVoiceRecognition(recognition, indicator);
+  });
+  
+  // Additional mobile touch event
+  micButton.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    startVoiceRecognition(recognition, indicator);
+  });
+}
+
+function startVoiceRecognition(recognition, indicator) {
+  indicator.textContent = "ऐकत आहे... बोला";
+  indicator.style.color = "blue";
+  
+  try {
+    recognition.start();
+  } catch (error) {
+    indicator.textContent = "सुरू करण्यात त्रुटी";
+    indicator.style.color = "red";
+  }
+  
+  recognition.onresult = function(event) {
+    const transcript = event.results[0][0].transcript;
+    const processedText = processVoiceInput(transcript);
+    document.getElementById('locationFromTo').value = processedText;
+    
+    indicator.textContent = "ओळखले!";
+    indicator.style.color = "green";
+    
+    setTimeout(() => {
+      indicator.textContent = "";
+    }, 2000);
+  };
+  
+  recognition.onerror = function(event) {
+    handleRecognitionError(event.error, indicator);
+  };
+  
+  recognition.onend = function() {
+    // Cleanup if needed
+  };
+}
+
+function handleRecognitionError(error, indicator) {
+  console.error("Voice recognition error:", error);
+  
+  const errorMessages = {
+    'not-allowed': 'मायक्रोफोन परवानगी नाकारली',
+    'audio-capture': 'मायक्रोफोन उपलब्ध नाही',
+    'network': 'नेटवर्क त्रुटी',
+    'no-speech': 'आवाज ऐकू आला नाही'
+  };
+  
+  indicator.textContent = errorMessages[error] || 'त्रुटी झाली';
+  indicator.style.color = "red";
+  
+  setTimeout(() => {
+    indicator.textContent = "";
+  }, 3000);
+}
+
+function showAdminLogin() {
+  const code = prompt("🔑 Admin Code टाका:");
+  if (code === ADMIN_CODE) {
+    document.getElementById("formPage").style.display = "none";
+    document.getElementById("dashboardPage").style.display = "none";
+    document.getElementById("adminPage").style.display = "block";
+  } else {
+    alert("❌ चुकीचा कोड. परत प्रयत्न करा.");
+  }
+}
+
+function backToForm() {
+  document.getElementById("adminPage").style.display = "none";
+  document.getElementById("formPage").style.display = "block";
+}
+
+/* ---------- Monthly Report Download ---------- */
+function generateMonthlyReport() {
+  const month = document.getElementById("reportMonth").value;
+  if (!month) {
+    document.getElementById("monthlyReportStatus").textContent = "⚠️ कृपया महिना निवडा!";
+    return;
+  }
+  document.getElementById("monthlyReportStatus").textContent = "⏳ रिपोर्ट तयार करत आहे...";
+  setTimeout(()=>{
+    document.getElementById("monthlyReportStatus").textContent = "✅ रिपोर्ट तयार झाला!";
+    document.getElementById("monthlyReportLink").innerHTML = 
+      `<a href="https://docs.google.com/spreadsheets/d/XXXX/export?format=pdf" target="_blank">📥 Download PDF Report (${month})</a>`;
+  },1500);
+}
+
+function generateQuarterlyReport() {
+  const year = document.getElementById("quarterYear").value;
+  const quarter = document.getElementById("quarterSelect").value;
+  if (!year || !quarter) {
+    document.getElementById("quarterlyReportStatus").textContent = "⚠️ कृपया वर्ष आणि Quarter निवडा!";
+    return;
+  }
+  document.getElementById("quarterlyReportStatus").textContent = "⏳ रिपोर्ट तयार करत आहे...";
+  setTimeout(()=>{
+    document.getElementById("quarterlyReportStatus").textContent = "✅ रिपोर्ट तयार झाला!";
+    document.getElementById("quarterlyReportLink").innerHTML =
+      `<a href="https://docs.google.com/spreadsheets/d/YYYY/export?format=pdf" target="_blank">📥 Download Quarterly Report (${year} ${quarter})</a>`;
+  },1500);
+}
+
+function generateExpenseReport() {
+  const year = document.getElementById("expenseYear").value;
+  const quarter = document.getElementById("expenseQuarter").value;
+  if (!year || !quarter) {
+    document.getElementById("expenseReportStatus").textContent = "⚠️ कृपया वर्ष आणि Quarter निवडा!";
+    return;
+  }
+  document.getElementById("expenseReportStatus").textContent = "⏳ रिपोर्ट तयार करत आहे...";
+  setTimeout(()=>{
+    document.getElementById("expenseReportStatus").textContent = "✅ रिपोर्ट तयार झाला!";
+    document.getElementById("expenseReportLink").innerHTML =
+      `<a href="https://docs.google.com/spreadsheets/d/ZZZZ/export?format=pdf" target="_blank">📥 Download Expense Report (${year} ${quarter})</a>`;
+  },1500);
+}
+
+
+const scriptURL = "https://script.google.com/macros/s/AKfycbzT-vob4JQLy3ia3Kt26kX9XPOFd0-90zoucFXnLrFWEaO6Vitxpw-k_2SdEi8oIZiPww/exec";
+
+/* ---------- Machine-wise Rates (L/hr) ---------- */
+const machineRates = {
+  "जेसीबी": 13,
+  "सॅनी": 23,
+  "टाटा हिताची": 20,
+  "शांतुई": 14,
+  "बीईएमएल": 14
+};
+
+/* ---------- Vehicle-wise Rates (Km/L) ---------- */
+const vehicleRates = {
+  // 🚛 Tippers
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३१": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३२": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३४": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३५": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३६": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३७": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३८": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३९": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४०": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४१": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४३": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४४": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४५": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४६": 1.6,
+  "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८६८": 1.6,
+  "आयशर ५०१६ प्रो टिप्पर क्र.एम एच ३९ ए डी ०५२०": 2.3,
+
+  // 🚚 Transporters
+  "३५ टन महिंद्रा ट्रॅको क्र. एम एच ०८ जी ०२१४": 1.9,
+  "२५ टन महिंद्रा ट्रक्सो क्र. एम एच ०८ जी ०२२५": 2.3,
+
+  // 🚙 Utility Vehicles
+  "टाटा झेनॉन योद्धा क्र.एम एच ०८ ए पी १२४४": 13,
+  "महिंद्रा बोलेरो कॅम्पर क्र.एम एच ०८ जी ०३४४": 13,
+  "महिंद्रा बोलेरो पिकअप क्र.एम एच ११ ए बी ०२७०": 13
+};
+
+/* ---------- Data (Projects) ---------- */
+const projects = {
+  "कालवा स्वच्छता": ["धोम डावा कालवा","तिलारी उजवा कालवा","बांदा शाखा कालवा","सलगरे मुख्य कालवा"],
+  "मातीकाम": [
+    "वाशिष्ठी नदीतील गाळ काढणे ता. चिपळूण (टप्पा-१)",
+    "वाशिष्ठी नदीतील गाळ काढणे ता. चिपळूण (टप्पा-२)",
+    "जगबुडी नदी ता.खेड जि.रत्नागिरी येथील गाळ व बेटे काढणे",
+    "मौजे माखजन येथील स्थानिक नदीतील गाळ काढणे. जि.रत्नागिरी"
+  ]
+};
+
+/* ---------- Machine Lists ---------- */
+const machines = {
+  "डोझर/एक्स्कॅव्हेटर": [
+    "जेसीबी एनएक्सटी२०५ क्र. ३१३२७७६",
+    "जेसीबी एनएक्सटी२०५ क्र. ३१३२७७७",
+    "जेसीबी एनएक्सटी२०५ क्र. ३१३२७७८",
+    "जेसीबी एनएक्सटी२०५ क्र. ३१३२७७९",
+    "जेसीबी एनएक्सटी२०५ क्र. ३१३२७८०",
+    "जेसीबी एनएक्सटी२०५ क्र. ३१३२७८१",
+    "सॅनी एस वाय ३५० क्र. ६२८",
+    "सॅनी एस वाय ३५० क्र. ६५८",
+    "टाटा हिताची ईएक्स३५० क्र. ०४०४",
+    "डोझर शांतुई एसडी१६ क्र. १०८९६८",
+    "डोझर बीईएमएल बीडी८० क्र. १५३४७"
+  ],
+
+  "टिपर": [
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३१",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३२",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३४",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३५",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३६",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३७",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३८",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८३९",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४०",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४१",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४३",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४४",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४५",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८४६",
+    "महिंद्रा ब्लाझो टिप्पर क्र. एम एच ०८ ए पी ४८६८",
+    "आयशर ५०१६ प्रो टिप्पर क्र.एम एच ३९ ए डी ०५२०"
+  ],
+
+  "ट्रान्सपोर्टर": [
+    "३५ टन महिंद्रा ट्रॅको क्र. एम एच ०८ जी ०२१४",
+    "२५ टन महिंद्रा ट्रक्सो क्र. एम एच ०८ जी ०२२५"
+  ],
+
+  "युटिलिटी वाहने": [
+    "टाटा झेनॉन योद्धा क्र.एम एच ०८ ए पी १२४४",
+    "महिंद्रा बोलेरो कॅम्पर क्र.एम एच ०८ जी ०३४४",
+    "महिंद्रा बोलेरो पिकअप क्र.एम एच ११ ए बी ०२७०"
+  ]
+};
+
+/* ---------- Utility: hide & clear extra fields ---------- */
+function hideAndClearExtraFields(){
+  // Hide merged location field and clear when moving to non-vehicle types
+  const wrap = document.getElementById("locationWrapper");
+  if (wrap) wrap.style.display = "none";
+
+  const loc = document.getElementById("locationFromTo");
+  const trip = document.getElementById("tripCount");
+  if (loc){ loc.required = false; loc.value = ""; }
+  if (trip){ trip.required = false; trip.value = ""; }
+}
+
+
+/* ---------- Data Store ---------- */
+let records=[];
+
+/* ---------- DOMContentLoaded ---------- */
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("✅ DOM loaded!");
+
+// ---------- Dashboard Dropdown Dependency ----------
+const dashMachineTypeSelect = document.getElementById("dashMachineType");
+const dashMachineSelect = document.getElementById("dashMachine");
+
+dashMachineTypeSelect.addEventListener("change", function () {
+  const type = this.value;
+  dashMachineSelect.innerHTML = '<option value="">--- मशीन निवडा ---</option>';
+  if (machines[type]) {
+    machines[type].forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      dashMachineSelect.appendChild(opt);
+    });
+  }
+});
+
+  // आजची तारीख auto-fill
+  const today = new Date();
+  document.getElementById('todayDate').value = today.toISOString().split('T')[0];
+
+  // सुरुवातीला extra fields लपव
+  hideAndClearExtraFields();
+
+  // कामाचा प्रकार -> प्रकल्प यादी
+  const workTypeSelect = document.getElementById("workType");
+  const projectSelect = document.getElementById("projectName");
+  const machineTypeSelect = document.getElementById("machineType");
+  const machineSelect = document.getElementById("machine");
+
+  workTypeSelect.addEventListener("change", function () {
+    const workType = this.value;
+    projectSelect.innerHTML = '<option value="" disabled selected>प्रकल्पाचे नाव निवडा...</option>';
+    if (projects[workType]) {
+      projects[workType].forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p;
+        opt.textContent = p;
+        projectSelect.appendChild(opt);
+      });
+    }
+  });
+
+  machineTypeSelect.addEventListener("change", function () {
+  const type = this.value;
+  machineSelect.innerHTML = '<option value="" disabled selected>सयंत्र निवडा...</option>';
+  if (machines[type]) {
+    machines[type].forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      machineSelect.appendChild(opt);
+    });
+  }
+
+  // Show merged location field only for these types
+  const locWrap = document.getElementById("locationWrapper");
+  const locInput = document.getElementById("locationFromTo");
+  const tripInput = document.getElementById("tripCount");
+
+  if (type === "टिपर" || type === "ट्रान्सपोर्टर" || type === "युटिलिटी वाहने") {
+    if (locWrap) locWrap.style.display = "block";
+    if (locInput) { locInput.required = true; }
+    if (tripInput) { tripInput.required = false; } // optional; manual allowed
+  } else {
+    // hide and clear only when non-vehicle
+    if (locWrap) locWrap.style.display = "none";
+    if (locInput) { locInput.required = false; locInput.value = ""; }
+    if (tripInput) { tripInput.required = false; tripInput.value = ""; }
+  }
+
+  // focus flow
+  machineSelect.focus();
+});
+
+
+  // Live Clock
+  setInterval(()=>{
+    const now=new Date();
+    document.getElementById("nowStamp").textContent=
+      now.toLocaleTimeString("mr-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  },1000);
+
+  // सुरुवातीला Dashboard load
+  loadDataFromSheet();
+initVoiceForLocation();
+});
+// Auto-calc: Dashboard Reading (तास/km)
+document.getElementById("startReading").addEventListener("input", calcReadingHours);
+document.getElementById("endReading").addEventListener("input", calcReadingHours);
+
+function calcReadingHours() {
+  const start = parseFloat(document.getElementById("startReading").value) || 0;
+  const end = parseFloat(document.getElementById("endReading").value) || 0;
+  const total = end > start ? (end - start) : 0;
+
+  const field = document.getElementById("totalHoursReading");
+  field.value = total.toFixed(1);
+
+  // Glow effect
+  field.classList.add("glow");
+  setTimeout(()=> field.classList.remove("glow"), 800);
+
+
+  // ✅ label बदललेलं (फक्त hint text अपडेट करायचं असेल तर):
+  const hint = field.nextElementSibling;
+  if (hint) {
+    hint.textContent = "endReading - startReading = आजचा एकूण तास / किमी";
+  }
+}
+// Auto-calc: Shift hours
+["shift1Start","shift1End","shift2Start","shift2End"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", calcShiftHours);
+});
+
+function calcShiftHours() {
+  function toHours(time){
+    if(!time) return 0;
+    const [h,m] = time.split(":").map(Number);
+    return h + m/60;
+  }
+  const s1 = toHours(document.getElementById("shift1Start").value);
+  const e1 = toHours(document.getElementById("shift1End").value);
+  const s2 = toHours(document.getElementById("shift2Start").value);
+  const e2 = toHours(document.getElementById("shift2End").value);
+
+  let total = 0;
+  if(e1>s1) total += (e1-s1);
+  if(e2>s2) total += (e2-s2);
+
+  const field = document.getElementById("totalShiftHours");
+  field.value = total.toFixed(1);
+
+  // Glow effect add करा
+  field.classList.add("glow");
+  setTimeout(()=> field.classList.remove("glow"), 800);
+
+}
+
+
+/* ---------- Diesel Field Dependency (Fix) ---------- */
+document.getElementById("dieselQty").addEventListener("input", function () {
+  let qty = parseFloat(this.value);
+  let timeField = document.getElementById("dieselTime");
+  let readingField = document.getElementById("dieselReading");
+
+  if (!isNaN(qty) && qty > 0) {
+    timeField.disabled = false;
+    timeField.required = true;
+
+    readingField.disabled = false;   // ✅ Fix
+    readingField.required = true;    // ✅ Fix
+  } else {
+    timeField.value = "";
+    timeField.disabled = true;
+    timeField.required = false;
+
+    readingField.value = "";
+    readingField.disabled = true;
+    readingField.required = false;
+  }
+});
+
+
+
+/* ---------- Submit ---------- */
+document.getElementById("submitBtn").addEventListener("click", () => {
+  const form = document.getElementById("mainForm");
+  if (!form.checkValidity()) { 
+    form.reportValidity(); 
+    return; 
+  }
+
+  const data = {
+    "दिनांक": document.getElementById("todayDate").value,
+    "कामाचा प्रकार": document.getElementById("workType").value,
+    "प्रकल्पाचे नाव": document.getElementById("projectName").value,
+    "सयंत्राचा प्रकार": document.getElementById("machineType").value,
+    "चालक": document.getElementById("driver").value,
+    "मशीन": document.getElementById("machine").value,
+    "डिझेल (लिटर)": document.getElementById("dieselQty").value,
+    "डिझेल वेळ": document.getElementById("dieselTime").value,
+    "डिझेल reading": document.getElementById("dieselReading").value,
+    "सुरुवातीचे reading": document.getElementById("startReading").value,
+    "शेवटचे reading": document.getElementById("endReading").value,
+  "Dashboard एकूण (तास/km)": document.getElementById("totalHoursReading").value,
+  "ठिकाण_from_to": document.getElementById("locationFromTo") ? document.getElementById("locationFromTo").value.trim() : "",
+  "एकूण ट्रिप्स": document.getElementById("tripCount") ? document.getElementById("tripCount").value : "",
+  "शिफ्ट-१ सुरू वेळ": document.getElementById("shift1Start").value,
+    "शिफ्ट-१ बंद वेळ": document.getElementById("shift1End").value,
+    "शिफ्ट-२ सुरू वेळ": document.getElementById("shift2Start").value,
+    "शिफ्ट-२ बंद वेळ": document.getElementById("shift2End").value,
+    "एकूण तास (shift)": document.getElementById("totalShiftHours").value
+  };
+
+  // ----- Remark Logic -----
+  let remark = "✅ काम झाले";
+  if ((!data["सुरुवातीचे reading"] && !data["शेवटचे reading"]) && (!data["डिझेल (लिटर)"] || data["डिझेल (लिटर)"] == 0)) {
+    remark = "🚫 काम झाले नाही";
+  } else if (data["डिझेल (लिटर)"] == 0 || data["डिझेल (लिटर)"] === "") {
+    remark = "⚠️ काम झाले, पण डिझेल भरले नाही";
+  }
+  data["टीप"] = remark;
+
+  fetch(scriptURL, {
+    method: "POST",
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.result === "success") {
+      document.getElementById("status").textContent = "✅ माहिती Sheet मध्ये जतन झाली!";
+      showPopup();   // ✅ popup दिसेल आणि 2 सेकंदात auto-close होईल
+
+      // 🔄 2 सेकंदांनी Dashboard Page वर redirect होईल
+      setTimeout(()=> redirectToDashboard(), 2000);
+
+      form.reset();
+
+      // Reset today's date after form reset
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+      document.getElementById('todayDate').value = formattedDate;
+
+      // Hide & clear extras
+      hideAndClearExtraFields();
+
+      setTimeout(() => document.getElementById("todayDate").focus(), 200);
+
+      // ✅ शेवटी dashboard refresh
+      loadDataFromSheet();
+    } else {
+      document.getElementById("status").textContent = "⚠️ server ने error दिला.";
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("status").textContent = "⚠️ एरर: माहिती जतन झाली नाही!";
+  });
+});
+
+/* ---------- Reset ---------- */
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  const form = document.getElementById("mainForm");
+  form.reset();
+
+  // Reset today's date after form reset
+  const today = new Date();
+  const formattedDate = today.toISOString().split('T')[0];
+  document.getElementById('todayDate').value = formattedDate;
+
+  // Hide & clear extras
+  hideAndClearExtraFields();
+
+  document.getElementById("status").innerHTML="♻️ फॉर्म रीसेट झाला.";
+  setTimeout(()=>document.getElementById("todayDate").focus(),200);
+});
+
+
+/* ---------- Dashboard ---------- */
+let chart;
+
+function toNumber(v){
+  if (v == null) return 0;
+  const s = String(v).trim().replace(/,/g, '.').replace(/[^\d\.\-]/g, '');
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getRateForMachine(machine) {
+  // Machine type (L/hr logic)
+  if (machine.includes("जेसीबी")) return machineRates["जेसीबी"];
+  if (machine.includes("सॅनी")) return machineRates["सॅनी"];
+  if (machine.includes("टाटा हिताची")) return machineRates["टाटा हिताची"];
+  if (machine.includes("शांतुई")) return machineRates["शांतुई"];
+  if (machine.includes("बीईएमएल")) return machineRates["बीईएमएल"];
+
+  // Vehicle type (Km/L logic)
+  if (vehicleRates[machine]) return vehicleRates[machine];
+
+  return 10; // fallback
+}
+
+function updateSummary(filtered) {
+  if (filtered.length === 0) {
+    document.getElementById("summaryDiv").innerHTML = "डेटा उपलब्ध नाही";
+    return;
+  }
+
+  // Group by machine (not machine|operator)
+  let group = {};
+  filtered.forEach(r => {
+    const machine = r["मशीन"] || "Unknown";
+    const key = machine; // machine-wise grouping
+    const total = toNumber(r["Dashboard एकूण (तास/km)"]);
+    const diesel = toNumber(r["डिझेल (लिटर)"]);
+    let type = r["सयंत्राचा प्रकार"] || "";
+
+    if (!type) {
+      if (machine.includes("जेसीबी") || machine.includes("सॅनी") ||
+          machine.includes("टाटा हिताची") || machine.includes("डोझर")) {
+        type = "डोझर/एक्स्कॅव्हेटर";
+      } else if (machine.includes("टिपर")) {
+        type = "टिपर";
+      } else if (machine.includes("ट्रान्सपोर्टर")) {
+        type = "ट्रान्सपोर्टर";
+      } else if (machine.includes("युटिलिटी")) {
+        type = "युटिलिटी वाहने";
+      }
+    }
+
+    if (!group[key]) {
+      group[key] = { totalHours: 0, totalDiesel: 0, machine, operators: new Set(), type };
+    }
+    group[key].totalHours += total;
+    group[key].totalDiesel += diesel;
+    if (r["चालक"]) group[key].operators.add(r["चालक"]);
+  });
+
+  console.log("🔍 Raw Group Data:", group);
+
+  // Calculate average (Machines: L/hr, Vehicles: Km/L)
+  let entries = Object.values(group).map(g => {
+    let avg = 0;
+    if (g.type === "डोझर/एक्स्कॅव्हेटर") {
+      if (g.totalHours > 0) avg = g.totalDiesel / g.totalHours; // L/hr
+    } else {
+      if (g.totalDiesel > 0) avg = g.totalHours / g.totalDiesel; // Km/L
+    }
+    return {
+      machine: g.machine,
+      operators: Array.from(g.operators).join(', '), // operators list
+      type: g.type,
+      totalHours: g.totalHours,
+      totalDiesel: g.totalDiesel,
+      avgDiesel: avg
+    };
+  });
+
+  console.log("🔍 Entries with Avg:", entries);
+
+  // Separate machines vs vehicles (only those with avg > 0)
+  let machineEntries = entries.filter(e => e.type === "डोझर/एक्स्कॅव्हेटर" && e.avgDiesel > 0);
+  let vehicleEntries = entries.filter(e => e.type !== "डोझर/एक्स्कॅव्हेटर" && e.avgDiesel > 0);
+
+  // Best / Worst for machines (L/hr): lower L/hr is better
+  let bestMachine = null, worstMachine = null;
+  if (machineEntries.length) {
+    bestMachine = machineEntries.reduce((a,b)=> (a.avgDiesel < b.avgDiesel ? a : b));
+    worstMachine = machineEntries.reduce((a,b)=> (a.avgDiesel > b.avgDiesel ? a : b));
+  }
+
+  // Best / Worst for vehicles (Km/L): higher Km/L is better
+  let bestVehicle = null, worstVehicle = null;
+  if (vehicleEntries.length) {
+    bestVehicle = vehicleEntries.reduce((a,b)=> (a.avgDiesel > b.avgDiesel ? a : b));
+    worstVehicle = vehicleEntries.reduce((a,b)=> (a.avgDiesel < b.avgDiesel ? a : b));
+  }
+
+  // Build 4-row summary (machine-topper, vehicle-topper, machine-bottom, vehicle-bottom)
+  let html = `
+    <h3 class="summary-heading">📊 मशीन कामगिरीचा सारांश</h3>
+    <div class="table-container">
+      <table border="1" style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Machine/Vehicle</th>
+            <th>Operators</th>
+            <th>Average</th>
+            <th>Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>🚜 सर्वात चांगले Machine Average</td>
+            <td>${bestMachine ? bestMachine.machine : "-"}</td>
+            <td>${bestMachine ? bestMachine.operators : "-"}</td>
+            <td>${bestMachine ? bestMachine.avgDiesel.toFixed(2)+" L/hr" : "-"}</td>
+            <td>👏 अभिनंदन !</td>
+          </tr>
+          <tr>
+            <td>🚚 सर्वात चांगले Vehicle Average</td>
+            <td>${bestVehicle ? bestVehicle.machine : "-"}</td>
+            <td>${bestVehicle ? bestVehicle.operators : "-"}</td>
+            <td>${bestVehicle ? bestVehicle.avgDiesel.toFixed(2)+" Km/L" : "-"}</td>
+            <td>👏 अभिनंदन !</td>
+          </tr>
+          <tr>
+            <td>🚜 सर्वात खराब Machine Average</td>
+            <td>${worstMachine ? worstMachine.machine : "-"}</td>
+            <td>${worstMachine ? worstMachine.operators : "-"}</td>
+            <td>${worstMachine ? worstMachine.avgDiesel.toFixed(2)+" L/hr" : "-"}</td>
+            <td>⚠️ खबरदारी घ्या</td>
+          </tr>
+          <tr>
+            <td>🚚 सर्वात खराब Vehicle Average</td>
+            <td>${worstVehicle ? worstVehicle.machine : "-"}</td>
+            <td>${worstVehicle ? worstVehicle.operators : "-"}</td>
+            <td>${worstVehicle ? worstVehicle.avgDiesel.toFixed(2)+" Km/L" : "-"}</td>
+            <td>⚠️ सुधारणा करणे</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+
+  document.getElementById("summaryDiv").innerHTML = html;
+}
+
+function updateDashboard() {
+  let machineFilter = document.getElementById("dashMachine").value;
+  let startDate = document.getElementById("startDate").value;
+  let endDate = document.getElementById("endDate").value;
+
+  fetch('https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1')
+    .then(res => res.json())
+    .then(data => {
+      let filteredAll = data.filter(r => {
+        if (startDate && endDate) {
+          let d = new Date(r["दिनांक"]);
+          return (d >= new Date(startDate) && d <= new Date(endDate));
+        }
+        return true;
+      });
+
+      let filtered = filteredAll.filter(r => {
+        return !machineFilter || r["मशीन"] === machineFilter;
+      });
+
+      updateSummary(filteredAll);
+
+      let totalHours = 0, totalDiesel = 0;
+filtered.forEach(r => {
+  totalHours += toNumber(r["Dashboard एकूण (तास/km)"]);
+  totalDiesel += toNumber(r["डिझेल (लिटर)"]);
+});
+
+// Machine name आधी ठरव
+let machineName = machineFilter ? machineFilter : (filtered[0] ? filtered[0]["मशीन"] : "N/A");
+
+// आता unit logic (एकदाच declare करा)
+const isVehicle = Object.prototype.hasOwnProperty.call(vehicleRates, machineName);
+const workUnit = isVehicle ? "किमी" : "तास";
+
+// Summary line
+document.getElementById("dashTotal").textContent = 
+  `⏱ ${totalHours.toFixed(1)} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर`;
+
+document.getElementById("dashCount").textContent = filtered.length;
+
+// Allowed calculation
+let allowed = 0;
+if (machineName && Object.prototype.hasOwnProperty.call(vehicleRates, machineName)) {
+  allowed = totalHours / vehicleRates[machineName];
+} else {
+  let rate = getRateForMachine(machineName);
+  allowed = rate * totalHours;
+}
+
+// ✅ येथे पुन्हा isVehicle/workUnit declare करू नकोस — वरचे reuse कर
+let tbody = document.querySelector("#dashTable tbody");
+tbody.innerHTML = "";
+if (filtered.length) {
+  const remark = totalDiesel <= allowed ? "योग्य" : "जास्त";
+  const remarkClass = totalDiesel <= allowed ? "green" : "red";
+
+  let row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${machineName}</td>
+    <td>${totalHours.toFixed(1)} ${workUnit}</td>
+    <td>${totalDiesel.toFixed(1)} लिटर</td>
+    <td>${allowed.toFixed(1)} लिटर</td>
+    <td class="${remarkClass}">${remark}</td>`;
+  tbody.appendChild(row);
+} else {
+  tbody.innerHTML = `<tr><td colspan="5">डेटा उपलब्ध नाही</td></tr>`;
+}
+
+      let labels = [];
+      let allowedData = [];
+      let actualData = [];
+      if (filtered.length) {
+        labels = [machineName];
+        allowedData = [(allowed).toFixed(1)];
+        actualData = [(totalDiesel).toFixed(1)];
+      }
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("consumptionGraph"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {label: `Allowed (लिटर)`, data: allowedData, backgroundColor:"rgba(54,162,235,0.6)"},
+            {label: `Actual (लिटर)`, data: actualData, backgroundColor:"rgba(255,99,132,0.6)"}
+          ]
+        },
+        options:{responsive:true,plugins:{legend:{position:"top"}}}
+      });
+    });
+}
+
+document.getElementById("dashFetchBtn").addEventListener("click",e=>{
+  e.preventDefault();
+  updateDashboard();
+});
+
+// Google Sheet मधून डेटा वाचणे
+function loadDataFromSheet(){
+  fetch('https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1')
+    .then(res => res.json())
+    .then(data => {
+      records = data;
+      updateDashboard();
+    })
+    .catch(err => console.error("लोडिंगमध्ये अडचण:",err));
+}
+
+// ---------- Redirect Function ----------
+function redirectToDashboard(){
+  document.getElementById("formPage").style.display = "none";
+  document.getElementById("dashboardPage").style.display = "block";
+  updateDashboard(); // ✅ Dashboard ताजं लोड होईल
+}
+// ---------- Show Form Function ----------
+function showFormPage(){
+  document.getElementById("dashboardPage").style.display = "none";
+  document.getElementById("formPage").style.display = "block";
+document.getElementById("status").textContent = "🛈 सर्व माहिती भरून 'सबमिट करा' दाबा.";
+
+  // 🔄 फॉर्म reset
+  document.getElementById("mainForm").reset();
+  const today = new Date();
+  document.getElementById('todayDate').value = today.toISOString().split('T')[0];
+}
+
+// ---------- Success Popup ----------
+function showPopup(message = "तुमची माहिती Google Sheet मध्ये सुरक्षित झाली आहे.") {
+  const popup = document.getElementById("successPopup");
+  if (!popup) return;
+
+  // Text अपडेट
+  const p = popup.querySelector(".popup-content p");
+  if (p) p.textContent = message;
+
+  // ✔️ animation reset करा
+  const tick = popup.querySelector(".checkmark");
+  if (tick) {
+    tick.classList.remove("draw");   // आधी काढ
+    void tick.offsetWidth;           // reflow (animation reset करण्यासाठी trick)
+    tick.classList.add("draw");      // पुन्हा add → animation play होईल
+  }
+
+  // Popup दाखवा
+  popup.classList.add("show");
+  popup.setAttribute("aria-hidden", "false");
+
+  // 2 सेकंदात auto hide
+  setTimeout(() => {
+    popup.classList.remove("show");
+    popup.setAttribute("aria-hidden", "true");
+  }, 2000);
+}
+// ---------------- Voice input for merged From→To ----------------
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+function initVoiceForLocation(){
+  const input = document.getElementById('locationFromTo');
+  const btn = document.getElementById('micLocation');
+  const ind = document.getElementById('locIndicator');
+  if (!btn || !input) return;
+
+  if (!SpeechRecognition) {
+    btn.disabled = true;
+    ind.textContent = 'व्हॉइस सपोर्ट नाही';
+    return;
+  }
+
+  const rec = new SpeechRecognition();
+  rec.lang = 'mr-IN';
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+  rec.continuous = false;
+
+  let listening = false;
+  btn.addEventListener('click', ()=>{
+    try {
+      if (!listening) { rec.start(); listening = true; btn.classList.add('recording'); ind.textContent = 'ऐकत आहे...'; }
+      else { rec.stop(); }
+    } catch(e) { console.warn(e); }
+  });
+
+  rec.addEventListener('result', ev=>{
+    const text = ev.results[0][0].transcript.trim();
+    input.value = text;
+    ind.textContent = 'भरले: ' + text;
+
+    // try to extract a number and fill tripCount
+    const n = extractTripCount(text);
+    if (n !== '') {
+      const tripEl = document.getElementById('tripCount');
+      if (tripEl) tripEl.value = n;
+    }
+  });
+
+  rec.addEventListener('end', ()=>{ listening = false; btn.classList.remove('recording'); if(!ind.textContent.startsWith('भरले')) ind.textContent = 'ऐकणे पूर्ण'; });
+  rec.addEventListener('error', ev=>{ console.error(ev); ind.textContent = 'एरर: '+ev.error; listening=false; btn.classList.remove('recording'); });
+}
+
+function extractTripCount(text){
+  if (!text) return '';
+  const m = text.match(/(\d+)\s*(?:trips?|ट्रिप्स?|ट्रिप)?/i);
+  if (m && m[1]) return m[1];
+  const m2 = text.match(/(\d+)/);
+  return m2 ? m2[1] : '';
+}
+
+// Initialize voice on DOM ready (add call if DOMContentLoaded exists)
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVoiceForLocation);
+  } else {
+    initVoiceForLocation();
+  }
+} catch(e){ console.warn('voice init error', e); }
+
+</script>
+
+<!-- Success popup (auto-close) -->
+<div id="successPopup" class="popup" aria-hidden="true">
+  <div class="popup-content">
+    <div class="checkmark-circle">
+      <div class="background"></div>
+      <div class="checkmark"></div>
+    </div>
+    <h2>माहिती जतन झाली!</h2>
+    <p>तुमची माहिती Google Sheet मध्ये सुरक्षित झाली आहे.</p>
+  </div>
+</div>
+</body>
+</html>
