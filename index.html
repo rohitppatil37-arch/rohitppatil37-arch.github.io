@@ -1435,53 +1435,150 @@ function showPopup(message = "तुमची माहिती Google Sheet �
 // ---------------- Voice input for merged From→To ----------------
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
+// Mobile-optimized voice input - Simplified and Fixed
+let recognitionInstance = null;
+let isRecognitionActive = false;
+
 function initVoiceForLocation(){
   const input = document.getElementById('locationFromTo');
   const btn = document.getElementById('micLocation');
   const ind = document.getElementById('locIndicator');
+  
   if (!btn || !input) return;
 
+  // Check if Speech Recognition is supported
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
   if (!SpeechRecognition) {
-    btn.disabled = true;
-    ind.textContent = 'व्हॉइस सपोर्ट नाही';
+    btn.style.display = 'none';
+    if (ind) ind.textContent = 'व्हॉइस सपोर्ट नाही';
     return;
   }
 
-  const rec = new SpeechRecognition();
-  rec.lang = 'mr-IN';
-  rec.interimResults = false;
-  rec.maxAlternatives = 1;
-  rec.continuous = false;
+  // Create recognition instance once
+  recognitionInstance = new SpeechRecognition();
+  recognitionInstance.continuous = false;
+  recognitionInstance.interimResults = false;
+  recognitionInstance.maxAlternatives = 1;
+  recognitionInstance.lang = 'mr-IN'; // Marathi
 
-  let listening = false;
-  btn.addEventListener('click', ()=>{
-    try {
-      if (!listening) { rec.start(); listening = true; btn.classList.add('recording'); ind.textContent = 'ऐकत आहे...'; }
-      else { rec.stop(); }
-    } catch(e) { console.warn(e); }
-  });
+  // Event: Recognition starts
+  recognitionInstance.onstart = function() {
+    console.log('🎤 Recognition started');
+    isRecognitionActive = true;
+    btn.classList.add('recording');
+    if (ind) {
+      ind.textContent = 'ऐकत आहे... बोला';
+      ind.style.color = 'blue';
+    }
+  };
 
-  rec.addEventListener('result', ev=>{
-    const text = ev.results[0][0].transcript.trim();
-    input.value = text;
-    ind.textContent = 'भरले: ' + text;
+  // Event: Speech detected
+  recognitionInstance.onspeechstart = function() {
+    console.log('🗣️ Speech detected');
+    if (ind) ind.textContent = 'आवाज ऐकू आला...';
+  };
 
-    // try to extract a number and fill tripCount
-    const n = extractTripCount(text);
-    if (n !== '') {
+  // Event: Result received
+  recognitionInstance.onresult = function(event) {
+    const transcript = event.results[0][0].transcript.trim();
+    const confidence = event.results[0][0].confidence;
+    
+    console.log('✅ Transcript:', transcript, 'Confidence:', confidence);
+    
+    // Fill the input
+    input.value = transcript;
+    
+    // Try to extract trip count
+    const tripNum = extractTripCount(transcript);
+    if (tripNum !== '') {
       const tripEl = document.getElementById('tripCount');
-      if (tripEl) tripEl.value = n;
+      if (tripEl) tripEl.value = tripNum;
+    }
+    
+    if (ind) {
+      ind.textContent = `ओळखले! (${Math.round(confidence * 100)}%)`;
+      ind.style.color = 'green';
+    }
+    
+    setTimeout(() => {
+      if (ind) ind.textContent = '';
+    }, 3000);
+  };
+
+  // Event: Error occurred
+  recognitionInstance.onerror = function(event) {
+    console.error('❌ Recognition error:', event.error);
+    
+    const errorMessages = {
+      'no-speech': 'आवाज ऐकू आला नाही',
+      'audio-capture': 'मायक्रोफोन सापडला नाही',
+      'not-allowed': 'मायक्रोफोन परवानगी नाकारली',
+      'network': 'नेटवर्क त्रुटी',
+      'aborted': 'ऐकणे थांबवले',
+      'service-not-allowed': 'सेवा उपलब्ध नाही'
+    };
+    
+    if (ind) {
+      ind.textContent = errorMessages[event.error] || `त्रुटी: ${event.error}`;
+      ind.style.color = 'red';
+    }
+    
+    setTimeout(() => {
+      if (ind) ind.textContent = '';
+    }, 4000);
+  };
+
+  // Event: Recognition ended
+  recognitionInstance.onend = function() {
+    console.log('⏹️ Recognition ended');
+    isRecognitionActive = false;
+    btn.classList.remove('recording');
+  };
+
+  // Button click handler
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isRecognitionActive) {
+      console.log('⏹️ Stopping recognition...');
+      try {
+        recognitionInstance.stop();
+      } catch(err) {
+        console.warn('Stop error:', err);
+      }
+    } else {
+      console.log('🎤 Starting recognition...');
+      if (ind) {
+        ind.textContent = 'तयारी करत आहे...';
+        ind.style.color = 'blue';
+      }
+      
+      try {
+        recognitionInstance.start();
+      } catch(err) {
+        console.error('Start error:', err);
+        if (ind) {
+          ind.textContent = 'त्रुटी: ' + err.message;
+          ind.style.color = 'red';
+        }
+      }
     }
   });
 
-  rec.addEventListener('end', ()=>{ listening = false; btn.classList.remove('recording'); if(!ind.textContent.startsWith('भरले')) ind.textContent = 'ऐकणे पूर्ण'; });
-  rec.addEventListener('error', ev=>{ console.error(ev); ind.textContent = 'एरर: '+ev.error; listening=false; btn.classList.remove('recording'); });
+  // Prevent double-tap zoom on mobile
+  btn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+  });
 }
 
 function extractTripCount(text){
   if (!text) return '';
+  // Match numbers followed by trip-related words
   const m = text.match(/(\d+)\s*(?:trips?|ट्रिप्स?|ट्रिप)?/i);
   if (m && m[1]) return m[1];
+  // Match standalone numbers
   const m2 = text.match(/(\d+)/);
   return m2 ? m2[1] : '';
 }
