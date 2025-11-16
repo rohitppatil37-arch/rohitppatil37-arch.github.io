@@ -1444,29 +1444,46 @@ function initVoiceForLocation(){
   const btn = document.getElementById('micLocation');
   const ind = document.getElementById('locIndicator');
   
-  if (!btn || !input) return;
+  if (!btn || !input) {
+    console.log('❌ Button or input not found');
+    return;
+  }
 
   // Check if Speech Recognition is supported
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   
   if (!SpeechRecognition) {
+    console.log('❌ Speech Recognition not supported');
     btn.style.display = 'none';
     if (ind) ind.textContent = 'व्हॉइस सपोर्ट नाही';
     return;
   }
 
+  console.log('✅ Speech Recognition supported');
+
   // Create recognition instance once
   recognitionInstance = new SpeechRecognition();
   recognitionInstance.continuous = false;
   recognitionInstance.interimResults = false;
-  recognitionInstance.maxAlternatives = 1;
-  recognitionInstance.lang = 'mr-IN'; // Marathi
+  recognitionInstance.maxAlternatives = 3; // Get multiple alternatives
+  
+  // Try Marathi first, but browser might auto-switch to available language
+  recognitionInstance.lang = 'mr-IN'; // Marathi primary
+  
+  // Some browsers support fallback languages
+  if (recognitionInstance.lang !== 'mr-IN') {
+    console.log('⚠️ Marathi not supported, trying Hindi...');
+    recognitionInstance.lang = 'hi-IN';
+  }
+  
+  console.log('✅ Recognition instance created with lang:', recognitionInstance.lang);
 
   // Event: Recognition starts
   recognitionInstance.onstart = function() {
     console.log('🎤 Recognition started');
     isRecognitionActive = true;
     btn.classList.add('recording');
+    btn.style.backgroundColor = '#e3f2fd';
     if (ind) {
       ind.textContent = 'ऐकत आहे... बोला';
       ind.style.color = 'blue';
@@ -1476,39 +1493,108 @@ function initVoiceForLocation(){
   // Event: Speech detected
   recognitionInstance.onspeechstart = function() {
     console.log('🗣️ Speech detected');
-    if (ind) ind.textContent = 'आवाज ऐकू आला...';
+    if (ind) {
+      ind.textContent = 'आवाज ऐकू आला...';
+      ind.style.color = 'green';
+    }
+  };
+
+  // Event: Sound detected
+  recognitionInstance.onsoundstart = function() {
+    console.log('🔊 Sound started');
+  };
+
+  // Event: Speech ended
+  recognitionInstance.onspeechend = function() {
+    console.log('🗣️ Speech ended - processing...');
+    if (ind) {
+      ind.textContent = 'प्रक्रिया करत आहे...';
+      ind.style.color = 'orange';
+    }
   };
 
   // Event: Result received
   recognitionInstance.onresult = function(event) {
-    const transcript = event.results[0][0].transcript.trim();
-    const confidence = event.results[0][0].confidence;
+    console.log('✅ Result event fired');
+    console.log('Full event:', event);
+    console.log('Results length:', event.results.length);
     
-    console.log('✅ Transcript:', transcript, 'Confidence:', confidence);
+    if (event.results.length === 0) {
+      console.log('⚠️ No results in event');
+      if (ind) {
+        ind.textContent = 'काही ऐकू आले नाही';
+        ind.style.color = 'orange';
+      }
+      return;
+    }
+    
+    const result = event.results[0];
+    console.log('Result object:', result);
+    console.log('Alternatives:', result.length);
+    
+    // Get all alternatives
+    let allTranscripts = [];
+    for (let i = 0; i < result.length; i++) {
+      const alt = result[i];
+      console.log(`Alternative ${i}: "${alt.transcript}" (confidence: ${alt.confidence})`);
+      allTranscripts.push(alt.transcript);
+    }
+    
+    // Use the best (first) alternative
+    const transcript = result[0].transcript.trim();
+    const confidence = result[0].confidence;
+    
+    console.log('✅ Final transcript:', transcript);
+    console.log('✅ Confidence:', confidence);
+    
+    if (!transcript) {
+      console.log('⚠️ Empty transcript');
+      if (ind) {
+        ind.textContent = 'काही ऐकू आले नाही';
+        ind.style.color = 'orange';
+      }
+      return;
+    }
     
     // Fill the input
     input.value = transcript;
+    console.log('✅ Input field updated with:', transcript);
     
     // Try to extract trip count
     const tripNum = extractTripCount(transcript);
+    console.log('Trip count extracted:', tripNum);
+    
     if (tripNum !== '') {
       const tripEl = document.getElementById('tripCount');
-      if (tripEl) tripEl.value = tripNum;
+      if (tripEl) {
+        tripEl.value = tripNum;
+        console.log('✅ Trip count field updated with:', tripNum);
+      }
     }
     
     if (ind) {
-      ind.textContent = `ओळखले! (${Math.round(confidence * 100)}%)`;
+      ind.textContent = `✅ ओळखले! (${Math.round(confidence * 100)}%)`;
       ind.style.color = 'green';
     }
     
     setTimeout(() => {
       if (ind) ind.textContent = '';
-    }, 3000);
+    }, 4000);
+  };
+
+  // Event: No match
+  recognitionInstance.onnomatch = function(event) {
+    console.log('⚠️ No match event');
+    if (ind) {
+      ind.textContent = 'समजले नाही. पुन्हा प्रयत्न करा';
+      ind.style.color = 'orange';
+    }
   };
 
   // Event: Error occurred
   recognitionInstance.onerror = function(event) {
     console.error('❌ Recognition error:', event.error);
+    console.log('Error details:', event);
     
     const errorMessages = {
       'no-speech': 'आवाज ऐकू आला नाही',
@@ -1516,7 +1602,9 @@ function initVoiceForLocation(){
       'not-allowed': 'मायक्रोफोन परवानगी नाकारली',
       'network': 'नेटवर्क त्रुटी',
       'aborted': 'ऐकणे थांबवले',
-      'service-not-allowed': 'सेवा उपलब्ध नाही'
+      'service-not-allowed': 'सेवा उपलब्ध नाही',
+      'bad-grammar': 'व्याकरण त्रुटी',
+      'language-not-supported': 'मराठी भाषा सपोर्ट नाही'
     };
     
     if (ind) {
@@ -1534,6 +1622,16 @@ function initVoiceForLocation(){
     console.log('⏹️ Recognition ended');
     isRecognitionActive = false;
     btn.classList.remove('recording');
+    btn.style.backgroundColor = '';
+    
+    // If indicator still shows "listening", update it
+    if (ind && ind.textContent.includes('ऐकत आहे')) {
+      ind.textContent = 'पूर्ण झाले';
+      ind.style.color = '#666';
+      setTimeout(() => {
+        if (ind) ind.textContent = '';
+      }, 2000);
+    }
   };
 
   // Button click handler
@@ -1541,12 +1639,17 @@ function initVoiceForLocation(){
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('🖱️ Mic button clicked');
+    console.log('Current state - isRecognitionActive:', isRecognitionActive);
+    
     if (isRecognitionActive) {
       console.log('⏹️ Stopping recognition...');
       try {
         recognitionInstance.stop();
       } catch(err) {
         console.warn('Stop error:', err);
+        isRecognitionActive = false;
+        btn.classList.remove('recording');
       }
     } else {
       console.log('🎤 Starting recognition...');
@@ -1557,12 +1660,15 @@ function initVoiceForLocation(){
       
       try {
         recognitionInstance.start();
+        console.log('✅ Start command sent');
       } catch(err) {
-        console.error('Start error:', err);
+        console.error('❌ Start error:', err);
         if (ind) {
           ind.textContent = 'त्रुटी: ' + err.message;
           ind.style.color = 'red';
         }
+        isRecognitionActive = false;
+        btn.classList.remove('recording');
       }
     }
   });
@@ -1571,16 +1677,31 @@ function initVoiceForLocation(){
   btn.addEventListener('touchend', function(e) {
     e.preventDefault();
   });
+  
+  console.log('✅ Voice input initialized successfully');
 }
 
 function extractTripCount(text){
   if (!text) return '';
-  // Match numbers followed by trip-related words
-  const m = text.match(/(\d+)\s*(?:trips?|ट्रिप्स?|ट्रिप)?/i);
-  if (m && m[1]) return m[1];
-  // Match standalone numbers
-  const m2 = text.match(/(\d+)/);
-  return m2 ? m2[1] : '';
+  console.log('Extracting trip count from:', text);
+  
+  // Match numbers followed by trip-related words (Marathi or English)
+  const patterns = [
+    /(\d+)\s*(?:trips?|ट्रिप्स?|ट्रिप|फेऱ्या|फेरी)/i,
+    /(?:trips?|ट्रिप्स?|ट्रिप|फेऱ्या|फेरी)\s*(\d+)/i,
+    /(\d+)/ // Fallback: any number
+  ];
+  
+  for (let pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      console.log('Trip count found:', match[1]);
+      return match[1];
+    }
+  }
+  
+  console.log('No trip count found');
+  return '';
 }
 
 // Initialize voice on DOM ready (add call if DOMContentLoaded exists)
