@@ -1831,70 +1831,86 @@
           "⏳ रिपोर्ट तयार करत आहे... कृपया थोडा वेळ वाट पहा (१-२ मिनिटे)";
         document.getElementById("monthlyReportLink").innerHTML = "";
 
-        // Use Google Apps Script URL with /exec and form submission
+        // Use Google Apps Script URL with user_content_key
         const scriptURL =
           "https://script.google.com/macros/s/AKfycbzT-vob4JQLy3ia3Kt26kX9XPOFd0-90zoucFXnLrFWEaO6Vitxpw-k_2SdEi8oIZiPww/exec";
 
-        // Create a form and submit it (bypasses CORS)
+        // Create a hidden iframe
+        const iframe = document.createElement("iframe");
+        iframe.name = "hiddenFrame";
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+
+        // Create a form
         const form = document.createElement("form");
         form.method = "POST";
         form.action = scriptURL;
-        form.target = "_hiddenFrame";
+        form.target = "hiddenFrame";
+        form.style.display = "none";
 
         // Add action field
         const actionInput = document.createElement("input");
-        actionInput.type = "hidden";
         actionInput.name = "action";
         actionInput.value = "generateMonthlyReport";
         form.appendChild(actionInput);
 
         // Add month field
         const monthInput = document.createElement("input");
-        monthInput.type = "hidden";
         monthInput.name = "month";
         monthInput.value = month;
         form.appendChild(monthInput);
 
-        // Create hidden iframe to handle response
-        const iframe = document.createElement("iframe");
-        iframe.name = "_hiddenFrame";
-        iframe.style.display = "none";
-        document.body.appendChild(iframe);
+        document.body.appendChild(form);
 
-        // Handle response
-        iframe.onload = function () {
+        // Handle response after form submission
+        const checkResponse = setInterval(function () {
           try {
-            const response = JSON.parse(
-              iframe.contentDocument.body.textContent
-            );
-            if (response.result === "success") {
-              document.getElementById("monthlyReportStatus").textContent =
-                "✅ रिपोर्ट तयार झाला आणि ईमेल केला गेला!";
-              document.getElementById(
-                "monthlyReportLink"
-              ).innerHTML = `<div style="margin-top: 10px; padding: 12px; background: #f0f8f0; border-radius: 8px; border: 1px solid #4caf50;">
-            <p style="margin: 0 0 8px 0; font-weight: bold; color: #2e7d32;">📧 महिना ${month} चा रिपोर्ट यशस्वीरित्या तयार झाला</p>
-            <p class="small" style="margin: 4px 0;">✅ PDF रिपोर्ट तुमच्या Google Drive मध्ये सेव्ह झाला आहे</p>
-            <p class="small" style="margin: 4px 0;">📨 रिपोर्ट खालील ईमेल पत्त्यावर पाठवला गेला आहे:</p>
-            <p class="small" style="margin: 4px 0; font-weight: bold;">rohitppatil37@gmail.com</p>
-            <p class="small" style="margin: 4px 0; font-weight: bold;">rohit15437patil@gmail.com</p>
-           </div>`;
-            } else {
-              document.getElementById("monthlyReportStatus").textContent =
-                "❌ त्रुटी: " + (response.error || "अज्ञात त्रुटी");
+            const iframeDoc =
+              iframe.contentDocument || iframe.contentWindow.document;
+            if (iframeDoc && iframeDoc.body && iframeDoc.body.textContent) {
+              clearInterval(checkResponse);
+
+              const response = JSON.parse(iframeDoc.body.textContent);
+              handleReportResponse(response, month);
+
+              // Clean up
+              document.body.removeChild(form);
+              document.body.removeChild(iframe);
             }
           } catch (e) {
-            document.getElementById("monthlyReportStatus").textContent =
-              "❌ प्रतिसाद प्रक्रिया करताना त्रुटी";
+            // Continue waiting
           }
+        }, 1000);
 
-          // Clean up
+        // Timeout after 30 seconds
+        setTimeout(function () {
+          clearInterval(checkResponse);
+          document.getElementById("monthlyReportStatus").textContent =
+            "❌ वेळ संपली. कृपया पुन्हा प्रयत्न करा.";
           document.body.removeChild(form);
           document.body.removeChild(iframe);
-        };
+        }, 30000);
 
-        document.body.appendChild(form);
         form.submit();
+      }
+
+      function handleReportResponse(response, month) {
+        if (response.result === "success") {
+          document.getElementById("monthlyReportStatus").textContent =
+            "✅ रिपोर्ट तयार झाला आणि ईमेल केला गेला!";
+          document.getElementById(
+            "monthlyReportLink"
+          ).innerHTML = `<div style="margin-top: 10px; padding: 12px; background: #f0f8f0; border-radius: 8px; border: 1px solid #4caf50;">
+        <p style="margin: 0 0 8px 0; font-weight: bold; color: #2e7d32;">📧 महिना ${month} चा रिपोर्ट यशस्वीरित्या तयार झाला</p>
+        <p class="small" style="margin: 4px 0;">✅ PDF रिपोर्ट तुमच्या Google Drive मध्ये सेव्ह झाला आहे</p>
+        <p class="small" style="margin: 4px 0;">📨 रिपोर्ट खालील ईमेल पत्त्यावर पाठवला गेला आहे:</p>
+        <p class="small" style="margin: 4px 0; font-weight: bold;">rohitppatil37@gmail.com</p>
+        <p class="small" style="margin: 4px 0; font-weight: bold;">rohit15437patil@gmail.com</p>
+       </div>`;
+        } else {
+          document.getElementById("monthlyReportStatus").textContent =
+            "❌ त्रुटी: " + (response.error || "अज्ञात त्रुटी");
+        }
       }
 
       function generateQuarterlyReport() {
