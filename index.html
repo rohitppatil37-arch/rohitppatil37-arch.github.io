@@ -462,7 +462,7 @@
               <input
                 id="startReading"
                 type="number"
-                placeholder="उदा. 500 किंवा 12000"
+                placeholder="उदा. 500 किंवा 12000" required
               />
             </div>
 
@@ -473,7 +473,7 @@
               <input
                 id="endReading"
                 type="number"
-                placeholder="उदा. 510 किंवा 12050"
+                placeholder="उदा. 510 किंवा 12050" required
               />
             </div>
 
@@ -501,7 +501,7 @@
                   id="locationFromTo"
                   type="text"
                   placeholder="उदा. साइट A - डंपयार्ड"
-                  style="flex: 1"
+                  style="flex: 1" required
                 />
                 <button
                   type="button"
@@ -525,7 +525,7 @@
                 id="tripCount"
                 type="number"
                 min="0"
-                placeholder="उदा. 5"
+                placeholder="उदा. 5" required
               />
               <div class="hint">
                 व्हॉइस आयनपुटने संख्या सापरल्यास auto-fill होईल; नसेल तर इथे
@@ -535,20 +535,20 @@
 
             <div>
               <label for="shift1Start">🌅 पहिला Shift सुरू करण्याची वेळ</label>
-              <input id="shift1Start" type="time" />
+              <input id="shift1Start" type="time" required/>
             </div>
             <div>
               <label for="shift1End">🌇 पहिला Shift थांबवण्याची वेळ</label>
-              <input id="shift1End" type="time" />
+              <input id="shift1End" type="time" required/>
             </div>
 
             <div>
               <label for="shift2Start">🌙 दुसरा Shift सुरू करण्याची वेळ</label>
-              <input id="shift2Start" type="time" />
+              <input id="shift2Start" type="time" required/>
             </div>
             <div>
               <label for="shift2End">🌌 दुसरा Shift थांबवण्याची वेळ</label>
-              <input id="shift2End" type="time" />
+              <input id="shift2End" type="time" required />
             </div>
 
             <div class="full">
