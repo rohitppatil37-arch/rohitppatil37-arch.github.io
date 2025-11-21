@@ -462,7 +462,8 @@
               <input
                 id="startReading"
                 type="number"
-                placeholder="उदा. 500 किंवा 12000" required
+                placeholder="उदा. 500 किंवा 12000"
+                required
               />
             </div>
 
@@ -473,7 +474,8 @@
               <input
                 id="endReading"
                 type="number"
-                placeholder="उदा. 510 किंवा 12050" required
+                placeholder="उदा. 510 किंवा 12050"
+                required
               />
             </div>
 
@@ -501,7 +503,8 @@
                   id="locationFromTo"
                   type="text"
                   placeholder="उदा. साइट A - डंपयार्ड"
-                  style="flex: 1" required
+                  style="flex: 1"
+                  required
                 />
                 <button
                   type="button"
@@ -525,7 +528,8 @@
                 id="tripCount"
                 type="number"
                 min="0"
-                placeholder="उदा. 5" required
+                placeholder="उदा. 5"
+                required
               />
               <div class="hint">
                 व्हॉइस आयनपुटने संख्या सापरल्यास auto-fill होईल; नसेल तर इथे
@@ -535,16 +539,16 @@
 
             <div>
               <label for="shift1Start">🌅 पहिला Shift सुरू करण्याची वेळ</label>
-              <input id="shift1Start" type="time" required/>
+              <input id="shift1Start" type="time" required />
             </div>
             <div>
               <label for="shift1End">🌇 पहिला Shift थांबवण्याची वेळ</label>
-              <input id="shift1End" type="time" required/>
+              <input id="shift1End" type="time" required />
             </div>
 
             <div>
               <label for="shift2Start">🌙 दुसरा Shift सुरू करण्याची वेळ</label>
-              <input id="shift2Start" type="time" required/>
+              <input id="shift2Start" type="time" required />
             </div>
             <div>
               <label for="shift2End">🌌 दुसरा Shift थांबवण्याची वेळ</label>
@@ -1230,6 +1234,9 @@
         });
 
         const today = new Date();
+        const now = new Date();
+        const currentMonth = now.toISOString().slice(0, 7);
+        document.getElementById("reportMonth").value = currentMonth;
         document.getElementById("todayDate").value = today
           .toISOString()
           .split("T")[0];
@@ -1400,7 +1407,9 @@
           "शेवटचे reading": document.getElementById("endReading").value,
           "Dashboard एकूण (तास/km)":
             document.getElementById("totalHoursReading").value,
-          "या ठिकाणापासून ते त्या ठिकाणापर्यंत": document.getElementById("locationFromTo")
+          "या ठिकाणापासून ते त्या ठिकाणापर्यंत": document.getElementById(
+            "locationFromTo"
+          )
             ? document.getElementById("locationFromTo").value.trim()
             : "",
           "एकूण ट्रिप्स": document.getElementById("tripCount")
@@ -1813,15 +1822,48 @@
             "⚠️ कृपया महिना निवडा!";
           return;
         }
+
         document.getElementById("monthlyReportStatus").textContent =
           "⏳ रिपोर्ट तयार करत आहे...";
-        setTimeout(() => {
-          document.getElementById("monthlyReportStatus").textContent =
-            "✅ रिपोर्ट तयार झाला!";
-          document.getElementById(
-            "monthlyReportLink"
-          ).innerHTML = `<a href="https://docs.google.com/spreadsheets/d/XXXX/export?format=pdf" target="_blank">📥 Download PDF Report (${month})</a>`;
-        }, 1500);
+        document.getElementById("monthlyReportLink").innerHTML = "";
+
+        // Use your actual script URL
+        const scriptURL =
+          "https://script.google.com/macros/s/AKfycbzT-vob4JQLy3ia3Kt26kX9XPOFd0-90zoucFXnLrFWEaO6Vitxpw-k_2SdEi8oIZiPww/exec";
+
+        // Send request to Apps Script with selected month
+        fetch(scriptURL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "generateMonthlyReport",
+            month: month,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.result === "success") {
+              document.getElementById("monthlyReportStatus").textContent =
+                "✅ रिपोर्ट तयार झाला आणि ईमेल केला गेला!";
+              document.getElementById(
+                "monthlyReportLink"
+              ).innerHTML = `<div style="margin-top: 10px; padding: 10px; background: #f0f8f0; border-radius: 8px;">
+          <p>📧 ${month} चा रिपोर्ट तुमच्या ईमेलवर पाठवला गेला आहे</p>
+          <p class="small">rohitppatil37@gmail.com आणि rohit15437patil@gmail.com</p>
+          <p class="small" style="margin-top: 8px;">✅ PDF रिपोर्ट तुमच्या Google Drive मध्ये सेव्ह झाला आहे</p>
+         </div>`;
+            } else {
+              document.getElementById("monthlyReportStatus").textContent =
+                "❌ त्रुटी: " + (data.error || "अज्ञात त्रुटी");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById("monthlyReportStatus").textContent =
+              "❌ नेटवर्क त्रुटी झाली. कृपया पुन्हा प्रयत्न करा.";
+          });
       }
 
       function generateQuarterlyReport() {
