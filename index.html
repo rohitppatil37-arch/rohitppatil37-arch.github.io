@@ -721,13 +721,27 @@
         </h3>
         <label for="reportMonth">📅 Select Month & Year</label>
         <input id="reportMonth" type="month" />
-        <button
-          class="btn"
-          style="margin-top: 10px"
-          onclick="generateMonthlyReport()"
+
+        <div
+          style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap"
         >
-          📥 Download Monthly Report
-        </button>
+          <button class="btn" onclick="generateMonthlyReport()">
+            📥 Basic CSV Report
+          </button>
+          <button
+            class="btn"
+            onclick="generateEnhancedMonthlyReport()"
+            style="background: linear-gradient(90deg, #10b981, #059669)"
+          >
+            📊 Detailed Report
+          </button>
+        </div>
+        <div class="hint" style="margin-top: 8px">
+          <strong>Basic Report:</strong> सर्व मूळ डेटा CSV मध्ये<br />
+          <strong>Detailed Report:</strong> सारांशासह 2 रिपोर्ट्स (विस्तृत +
+          सारांश)
+        </div>
+
         <div
           id="monthlyReportStatus"
           class="small"
@@ -737,81 +751,18 @@
 
         <hr style="margin: 20px 0" />
 
+        <!-- Keep your existing quarterly and expense reports -->
         <h3 style="margin-top: 20px; color: #0b3a66">
           📊 Download Three-Month Report
         </h3>
-        <label for="quarterYear">📅 Select Year</label>
-        <input
-          id="quarterYear"
-          type="number"
-          placeholder="उदा. 2025"
-          min="2020"
-          max="2100"
-        />
-
-        <label for="quarterSelect" style="margin-top: 10px"
-          >📆 Select Quarter</label
-        >
-        <select id="quarterSelect">
-          <option value="">--- Select Quarter ---</option>
-          <option value="Q1">January – March</option>
-          <option value="Q2">April – June</option>
-          <option value="Q3">July – September</option>
-          <option value="Q4">October – December</option>
-        </select>
-
-        <button
-          class="btn"
-          style="margin-top: 10px"
-          onclick="generateQuarterlyReport()"
-        >
-          📥 Download Three-Month Report
-        </button>
-        <div
-          id="quarterlyReportStatus"
-          class="small"
-          style="margin-top: 12px"
-        ></div>
-        <div id="quarterlyReportLink" style="margin-top: 12px"></div>
+        <!-- ... existing quarterly report code ... -->
 
         <hr style="margin: 20px 0" />
 
         <h3 style="margin-top: 20px; color: #0b3a66">
           💰 Download प्रलंबित खर्च अहवाल
         </h3>
-        <label for="expenseYear">📅 Select Year</label>
-        <input
-          id="expenseYear"
-          type="number"
-          placeholder="उदा. 2025"
-          min="2020"
-          max="2100"
-        />
-
-        <label for="expenseQuarter" style="margin-top: 10px"
-          >📆 Select Quarter</label
-        >
-        <select id="expenseQuarter">
-          <option value="">--- Select Quarter ---</option>
-          <option value="Q1">January – March</option>
-          <option value="Q2">April – June</option>
-          <option value="Q3">July – September</option>
-          <option value="Q4">October – December</option>
-        </select>
-
-        <button
-          class="btn"
-          style="margin-top: 10px"
-          onclick="generateExpenseReport()"
-        >
-          📥 Download Expense Report
-        </button>
-        <div
-          id="expenseReportStatus"
-          class="small"
-          style="margin-top: 12px"
-        ></div>
-        <div id="expenseReportLink" style="margin-top: 12px"></div>
+        <!-- ... existing expense report code ... -->
 
         <div class="actions" style="margin-top: 20px">
           <button class="btn ghost" onclick="backToForm()">⬅️ Back</button>
@@ -1828,70 +1779,293 @@
         }
 
         document.getElementById("monthlyReportStatus").textContent =
-          "⏳ रिपोर्ट तयार करत आहे... कृपया थोडा वेळ वाट पहा (१-२ मिनिटे)";
+          "⏳ रिपोर्ट तयार करत आहे...";
         document.getElementById("monthlyReportLink").innerHTML = "";
 
-        // Use Google Apps Script URL with user_content_key
-        const scriptURL =
-          "https://script.google.com/macros/s/AKfycbzT-vob4JQLy3ia3Kt26kX9XPOFd0-90zoucFXnLrFWEaO6Vitxpw-k_2SdEi8oIZiPww/exec";
-
-        // Create a hidden iframe
-        const iframe = document.createElement("iframe");
-        iframe.name = "hiddenFrame";
-        iframe.style.display = "none";
-        document.body.appendChild(iframe);
-
-        // Create a form
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = scriptURL;
-        form.target = "hiddenFrame";
-        form.style.display = "none";
-
-        // Add action field
-        const actionInput = document.createElement("input");
-        actionInput.name = "action";
-        actionInput.value = "generateMonthlyReport";
-        form.appendChild(actionInput);
-
-        // Add month field
-        const monthInput = document.createElement("input");
-        monthInput.name = "month";
-        monthInput.value = month;
-        form.appendChild(monthInput);
-
-        document.body.appendChild(form);
-
-        // Handle response after form submission
-        const checkResponse = setInterval(function () {
-          try {
-            const iframeDoc =
-              iframe.contentDocument || iframe.contentWindow.document;
-            if (iframeDoc && iframeDoc.body && iframeDoc.body.textContent) {
-              clearInterval(checkResponse);
-
-              const response = JSON.parse(iframeDoc.body.textContent);
-              handleReportResponse(response, month);
-
-              // Clean up
-              document.body.removeChild(form);
-              document.body.removeChild(iframe);
+        // Fetch data from the spreadsheet
+        fetch(
+          "https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1"
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const reportData = filterDataByMonth(data, month);
+            if (reportData.length === 0) {
+              document.getElementById("monthlyReportStatus").textContent =
+                "❌ निवडलेल्या महिन्यासाठी कोणताही डेटा उपलब्ध नाही";
+              return;
             }
-          } catch (e) {
-            // Continue waiting
-          }
-        }, 1000);
 
-        // Timeout after 30 seconds
-        setTimeout(function () {
-          clearInterval(checkResponse);
+            const csvContent = convertToCSV(reportData);
+            downloadCSV(csvContent, `matikam_report_${month}.csv`);
+
+            document.getElementById("monthlyReportStatus").textContent =
+              "✅ CSV रिपोर्ट डाउनलोड सुरू झाला!";
+            document.getElementById("monthlyReportLink").innerHTML = `
+                <div style="margin-top: 10px; padding: 12px; background: #f0f8f0; border-radius: 8px; border: 1px solid #4caf50;">
+                    <p style="margin: 0 0 8px 0; font-weight: bold; color: #2e7d32;">📊 महिना ${month} चा रिपोर्ट तयार झाला</p>
+                    <p class="small" style="margin: 4px 0;">✅ एकूण नोंदी: ${reportData.length}</p>
+                    <p class="small" style="margin: 4px 0;">📥 CSV फाईल आपोआप डाउनलोड होईल</p>
+                </div>`;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            document.getElementById("monthlyReportStatus").textContent =
+              "❌ डेटा लोड करताना त्रुटी: " + error.message;
+          });
+      }
+
+      function filterDataByMonth(data, month) {
+        const [year, monthNum] = month.split("-").map(Number);
+        const startDate = new Date(year, monthNum - 1, 1);
+        const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+
+        return data.filter((row) => {
+          const dateStr = row["दिनांक"];
+          if (!dateStr) return false;
+
+          const rowDate = new Date(dateStr);
+          return rowDate >= startDate && rowDate <= endDate;
+        });
+      }
+
+      function convertToCSV(data) {
+        if (data.length === 0) return "";
+
+        const headers = Object.keys(data[0]);
+        const csvRows = [];
+
+        // Add headers
+        csvRows.push(headers.join(","));
+
+        // Add data rows
+        data.forEach((row) => {
+          const values = headers.map((header) => {
+            let value = row[header] || "";
+            // Escape quotes and wrap in quotes if contains comma
+            value = String(value).replace(/"/g, '""');
+            if (
+              value.includes(",") ||
+              value.includes('"') ||
+              value.includes("\n")
+            ) {
+              value = `"${value}"`;
+            }
+            return value;
+          });
+          csvRows.push(values.join(","));
+        });
+
+        return csvRows.join("\n");
+      }
+
+      function downloadCSV(csvContent, filename) {
+        const blob = new Blob([csvContent], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const link = document.createElement("a");
+
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", filename);
+          link.style.visibility = "hidden";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+
+      // Enhanced version with Excel-like formatting
+      function generateEnhancedMonthlyReport() {
+        const month = document.getElementById("reportMonth").value;
+        if (!month) {
           document.getElementById("monthlyReportStatus").textContent =
-            "❌ वेळ संपली. कृपया पुन्हा प्रयत्न करा.";
-          document.body.removeChild(form);
-          document.body.removeChild(iframe);
-        }, 30000);
+            "⚠️ कृपया महिना निवडा!";
+          return;
+        }
 
-        form.submit();
+        document.getElementById("monthlyReportStatus").textContent =
+          "⏳ विस्तृत रिपोर्ट तयार करत आहे...";
+        document.getElementById("monthlyReportLink").innerHTML = "";
+
+        fetch(
+          "https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1"
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const reportData = filterDataByMonth(data, month);
+            if (reportData.length === 0) {
+              document.getElementById("monthlyReportStatus").textContent =
+                "❌ निवडलेल्या महिन्यासाठी कोणताही डेटा उपलब्ध नाही";
+              return;
+            }
+
+            // Create enhanced report with summary
+            const enhancedReport = createEnhancedReport(reportData, month);
+            downloadCSV(enhancedReport, `matikam_detailed_report_${month}.csv`);
+
+            // Also create summary report
+            const summaryReport = createSummaryReport(reportData, month);
+            downloadCSV(summaryReport, `matikam_summary_${month}.csv`);
+
+            document.getElementById("monthlyReportStatus").textContent =
+              "✅ दोन रिपोर्ट्स तयार झाले!";
+            document.getElementById("monthlyReportLink").innerHTML = `
+                <div style="margin-top: 10px; padding: 12px; background: #f0f8f0; border-radius: 8px; border: 1px solid #4caf50;">
+                    <p style="margin: 0 0 8px 0; font-weight: bold; color: #2e7d32;">📊 महिना ${month} चे रिपोर्ट्स तयार झाले</p>
+                    <p class="small" style="margin: 4px 0;">✅ एकूण नोंदी: ${reportData.length}</p>
+                    <p class="small" style="margin: 4px 0;">📥 2 CSV फाईल्स आपोआप डाउनलोड होतील:</p>
+                    <p class="small" style="margin: 2px 0;">• matikam_detailed_report_${month}.csv</p>
+                    <p class="small" style="margin: 2px 0;">• matikam_summary_${month}.csv</p>
+                </div>`;
+          })
+          .catch((error) => {
+            document.getElementById("monthlyReportStatus").textContent =
+              "❌ त्रुटी: " + error.message;
+          });
+      }
+
+      function createEnhancedReport(data, month) {
+        const headers = Object.keys(data[0]);
+        const csvRows = [];
+
+        // Add report header
+        csvRows.push(`मातीकाम प्रगती रिपोर्ट - ${month}`);
+        csvRows.push(
+          `तयार केल्याची तारीख: ${new Date().toLocaleDateString("mr-IN")}`
+        );
+        csvRows.push(`एकूण नोंदी: ${data.length}`);
+        csvRows.push("");
+
+        // Add main data headers
+        csvRows.push(headers.join(","));
+
+        // Add data rows
+        data.forEach((row) => {
+          const values = headers.map((header) => {
+            let value = row[header] || "";
+            value = String(value).replace(/"/g, '""');
+            if (
+              value.includes(",") ||
+              value.includes('"') ||
+              value.includes("\n")
+            ) {
+              value = `"${value}"`;
+            }
+            return value;
+          });
+          csvRows.push(values.join(","));
+        });
+
+        return csvRows.join("\n");
+      }
+
+      function createSummaryReport(data, month) {
+        const csvRows = [];
+
+        // Report header
+        csvRows.push(`मातीकाम प्रगती सारांश रिपोर्ट - ${month}`);
+        csvRows.push(
+          `तयार केल्याची तारीख: ${new Date().toLocaleDateString("mr-IN")}`
+        );
+        csvRows.push("");
+
+        // Machine-wise summary
+        const machineSummary = {};
+        let totalDiesel = 0;
+        let totalHours = 0;
+
+        data.forEach((row) => {
+          const machine = row["मशीन"] || "Unknown";
+          const diesel = parseFloat(row["डिझेल (लिटर)"]) || 0;
+          const hours = parseFloat(row["Dashboard एकूण (तास/km)"]) || 0;
+
+          if (!machineSummary[machine]) {
+            machineSummary[machine] = {
+              diesel: 0,
+              hours: 0,
+              count: 0,
+              type: row["सयंत्राचा प्रकार"] || "",
+            };
+          }
+
+          machineSummary[machine].diesel += diesel;
+          machineSummary[machine].hours += hours;
+          machineSummary[machine].count += 1;
+          totalDiesel += diesel;
+          totalHours += hours;
+        });
+
+        // Add summary headers
+        csvRows.push(
+          "मशीन,सयंत्र प्रकार,एकूण नोंदी,एकूण डिझेल (लिटर),एकूण तास/किमी,सरासरी डिझेल वापर"
+        );
+
+        // Add machine summaries
+        Object.keys(machineSummary).forEach((machine) => {
+          const summary = machineSummary[machine];
+          const avgDiesel =
+            summary.hours > 0
+              ? (summary.diesel / summary.hours).toFixed(2)
+              : "0";
+          csvRows.push(
+            `${machine},${summary.type},${
+              summary.count
+            },${summary.diesel.toFixed(2)},${summary.hours.toFixed(
+              2
+            )},${avgDiesel}`
+          );
+        });
+
+        // Add totals
+        csvRows.push("");
+        csvRows.push(
+          `एकूण,,${data.length},${totalDiesel.toFixed(2)},${totalHours.toFixed(
+            2
+          )},-`
+        );
+
+        return csvRows.join("\n");
+      }
+
+      // Update your admin panel HTML to include both options
+      function updateAdminPanel() {
+        // Add this to your admin section in the HTML or create it dynamically
+        const adminHTML = `
+        <h3 style="margin-top: 20px; color: #0b3a66">🗓 Download Monthly Report</h3>
+        <label for="reportMonth">📅 Select Month & Year</label>
+        <input id="reportMonth" type="month" />
+        
+        <div style="margin-top: 10px; display: flex; gap: 10px;">
+            <button class="btn" onclick="generateMonthlyReport()">
+                📥 Basic CSV Report
+            </button>
+            <button class="btn" onclick="generateEnhancedMonthlyReport()" style="background: linear-gradient(90deg, #10b981, #059669);">
+                📊 Detailed Report
+            </button>
+        </div>
+        
+        <div id="monthlyReportStatus" class="small" style="margin-top: 12px"></div>
+        <div id="monthlyReportLink" style="margin-top: 12px"></div>
+    `;
+
+        // You can replace the existing monthly report section with this
+      }
+
+      // Initialize the current month by default
+      function initReportMonth() {
+        const now = new Date();
+        const currentMonth = now.toISOString().slice(0, 7);
+        const reportMonthInput = document.getElementById("reportMonth");
+        if (reportMonthInput) {
+          reportMonthInput.value = currentMonth;
+        }
+      }
+
+      // Call this when the admin page loads
+      function initAdminPage() {
+        initReportMonth();
+        // Any other admin page initialization
       }
 
       function handleReportResponse(response, month) {
