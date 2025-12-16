@@ -1266,28 +1266,33 @@
           const tripInput = document.getElementById("tripCount");
 
           if (
-            type === "टिपर" ||
-            type === "ट्रान्सपोर्टर" ||
-            type === "युटिलिटी वाहने"
-          ) {
-            if (locWrap) locWrap.style.display = "block";
-            if (locInput) {
-              locInput.required = true;
-            }
-            if (tripInput) {
-              tripInput.required = false;
-            }
-          } else {
-            if (locWrap) locWrap.style.display = "none";
-            if (locInput) {
-              locInput.required = false;
-              locInput.value = "";
-            }
-            if (tripInput) {
-              tripInput.required = false;
-              tripInput.value = "";
-            }
-          }
+  type === "टिपर" ||
+  type === "ट्रान्सपोर्टर" ||
+  type === "युटिलिटी वाहने"
+) {
+  if (locWrap) locWrap.style.display = "block";
+
+  if (locInput) {
+    locInput.required = true;
+  }
+
+  if (tripInput) {
+    tripInput.required = true;   // ✅ NOW compulsory
+    tripInput.min = 1;           // ✅ किमान 1 ट्रिप
+  }
+} else {
+  if (locWrap) locWrap.style.display = "none";
+
+  if (locInput) {
+    locInput.required = false;
+    locInput.value = "";
+  }
+
+  if (tripInput) {
+    tripInput.required = false;
+    tripInput.value = "";
+  }
+}
 
           machineSelect.focus();
         });
