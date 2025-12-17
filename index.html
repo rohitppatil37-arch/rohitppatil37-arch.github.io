@@ -355,6 +355,10 @@
           opacity: 0.6;
         }
       }
+      .orange {
+  color: #d97706;
+  font-weight: 700;
+}
     </style>
   </head>
   <body>
@@ -636,6 +640,27 @@
         <div id="summaryDiv" class="dash-card card" style="margin-top: 16px">
           🔄 गणना करत आहे...
         </div>
+        <div class="dash-card card" style="margin-top:16px">
+  <div style="font-weight:800;color:#0b3a66;margin-bottom:8px">
+    ⚙️ मशीननुसार डिझेल वापर स्थिती
+  </div>
+
+  <div class="table-container">
+    <table id="machineDeviationTable">
+      <thead>
+        <tr>
+          <th>मशीन</th>
+          <th>मानक (लि/तास)</th>
+          <th>प्रत्यक्ष (लि/तास)</th>
+          <th>फरक %</th>
+          <th>स्थिती</th>
+          <th>कल</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
         <div class="dash-card card">
           <div
             style="
@@ -950,6 +975,133 @@
         if (vehicleRates[machine]) return vehicleRates[machine];
         return 10;
       }
+function getDeviationStatus(dev) {
+  if (dev < 0)
+    return { text: "🟢 कमी डिझेल वापरले", cls: "green" };
+
+  if (dev === 0)
+    return { text: "🟡 योग्य डिझेल वापरले", cls: "orange" };
+
+  return { text: "🔴 जास्त डिझेल वापरले", cls: "red" };
+}
+
+function deviationColor(dev) {
+  if (dev < 0) return "green";
+  if (dev === 0) return "yellow";
+  return "red";
+}
+function buildMachineHistory(records, days = 7) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const history = {};
+
+  records.forEach(r => {
+    const date = new Date(r["दिनांक"]);
+    if (date < cutoff) return;
+
+    const machine = r["मशीन"];
+    if (!machine) return;
+
+    const hrs = toNumber(r["Dashboard एकूण (तास/km)"]);
+    const diesel = toNumber(r["डिझेल (लिटर)"]);
+    if (hrs <= 0) return;
+
+    const std = getRateForMachine(machine);
+    let dev = ((diesel / hrs - std) / std) * 100;
+    dev = Number(dev.toFixed(1));
+
+    if (!history[machine]) history[machine] = [];
+    history[machine].push({
+      date,
+      color: deviationColor(dev)
+    });
+  });
+
+  Object.keys(history).forEach(m =>
+    history[m].sort((a, b) => a.date - b.date)
+  );
+
+  return history;
+}
+
+function detectTrend(colors) {
+  if (colors.length < 3) return "—";
+
+  const last3 = colors.slice(-3).join(">");
+
+  if (last3 === "red>yellow>green")
+    return "⬆️ सुधारणा होत आहे";
+
+  if (last3 === "green>yellow>red")
+    return "⬇️ स्थिती बिघडत आहे";
+
+  if (last3 === "red>red>red")
+    return "⚠️ सतत जास्त वापर";
+
+  if (last3 === "green>green>green")
+    return "🟢 स्थिती चांगली आहे";
+
+  return "↔️ बदलती स्थिती";
+}
+function renderMachineDeviationTable(records) {
+  const tbody = document.querySelector("#machineDeviationTable tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  let group = {};
+
+  records.forEach(r => {
+    const machine = r["मशीन"];
+    if (!machine) return;
+
+    const type = r["सयंत्राचा प्रकार"];
+    if (type !== "डोझर/एक्स्कॅव्हेटर") return;
+
+    const hrs = toNumber(r["Dashboard एकूण (तास/km)"]);
+    const diesel = toNumber(r["डिझेल (लिटर)"]);
+    if (hrs <= 0) return;
+
+    if (!group[machine]) {
+      group[machine] = { machine, totalHours: 0, totalDiesel: 0 };
+    }
+
+    group[machine].totalHours += hrs;
+    group[machine].totalDiesel += diesel;
+  });
+
+  const history = buildMachineHistory(records, 7);
+
+  Object.values(group).forEach(g => {
+    const std = getRateForMachine(g.machine);
+    const actual = g.totalDiesel / g.totalHours;
+
+    let dev = ((actual - std) / std) * 100;
+    dev = Number(dev.toFixed(1));
+
+    const status = getDeviationStatus(dev);
+    const colors = history[g.machine]
+      ? history[g.machine].map(h => h.color)
+      : [];
+    const trend = detectTrend(colors);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${g.machine}</td>
+      <td>${std}</td>
+      <td>${actual.toFixed(1)}</td>
+      <td>${dev}%</td>
+      <td class="${status.cls}">${status.text}</td>
+      <td>${trend}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (!tbody.children.length) {
+    tbody.innerHTML =
+      `<tr><td colspan="6">डेटा उपलब्ध नाही</td></tr>`;
+  }
+}
 
       function extractTripCount(text) {
         if (!text) return "";
@@ -1473,153 +1625,6 @@
         setTimeout(() => document.getElementById("todayDate").focus(), 200);
       });
 
-      function updateSummary(filtered) {
-        if (filtered.length === 0) {
-          document.getElementById("summaryDiv").innerHTML = "डेटा उपलब्ध नाही";
-          return;
-        }
-
-        let group = {};
-        filtered.forEach((r) => {
-          const machine = r["मशीन"] || "Unknown";
-          const key = machine;
-          const total = toNumber(r["Dashboard एकूण (तास/km)"]);
-          const diesel = toNumber(r["डिझेल (लिटर)"]);
-          let type = r["सयंत्राचा प्रकार"] || "";
-
-          if (!type) {
-            if (
-              machine.includes("जेसीबी") ||
-              machine.includes("सॅनी") ||
-              machine.includes("टाटा हिताची") ||
-              machine.includes("डोझर")
-            ) {
-              type = "डोझर/एक्स्कॅव्हेटर";
-            } else if (machine.includes("टिपर")) {
-              type = "टिपर";
-            } else if (machine.includes("ट्रान्सपोर्टर")) {
-              type = "ट्रान्सपोर्टर";
-            } else if (machine.includes("युटिलिटी")) {
-              type = "युटिलिटी वाहने";
-            }
-          }
-
-          if (!group[key]) {
-            group[key] = {
-              totalHours: 0,
-              totalDiesel: 0,
-              machine,
-              operators: new Set(),
-              type,
-            };
-          }
-          group[key].totalHours += total;
-          group[key].totalDiesel += diesel;
-          if (r["चालक"]) group[key].operators.add(r["चालक"]);
-        });
-
-        let entries = Object.values(group).map((g) => {
-          let avg = 0;
-          if (g.type === "डोझर/एक्स्कॅव्हेटर") {
-            if (g.totalHours > 0) avg = g.totalDiesel / g.totalHours;
-          } else {
-            if (g.totalDiesel > 0) avg = g.totalHours / g.totalDiesel;
-          }
-          return {
-            machine: g.machine,
-            operators: Array.from(g.operators).join(", "),
-            type: g.type,
-            totalHours: g.totalHours,
-            totalDiesel: g.totalDiesel,
-            avgDiesel: avg,
-          };
-        });
-
-        let machineEntries = entries.filter(
-          (e) => e.type === "डोझर/एक्स्कॅव्हेटर" && e.avgDiesel > 0
-        );
-        let vehicleEntries = entries.filter(
-          (e) => e.type !== "डोझर/एक्स्कॅव्हेटर" && e.avgDiesel > 0
-        );
-
-        let bestMachine = null,
-          worstMachine = null;
-        if (machineEntries.length) {
-          bestMachine = machineEntries.reduce((a, b) =>
-            a.avgDiesel < b.avgDiesel ? a : b
-          );
-          worstMachine = machineEntries.reduce((a, b) =>
-            a.avgDiesel > b.avgDiesel ? a : b
-          );
-        }
-
-        let bestVehicle = null,
-          worstVehicle = null;
-        if (vehicleEntries.length) {
-          bestVehicle = vehicleEntries.reduce((a, b) =>
-            a.avgDiesel > b.avgDiesel ? a : b
-          );
-          worstVehicle = vehicleEntries.reduce((a, b) =>
-            a.avgDiesel < b.avgDiesel ? a : b
-          );
-        }
-
-        let html = `
-    <h3 class="summary-heading">📊 मशीन कामगिरीचा सारांश</h3>
-    <div class="table-container">
-      <table border="1" style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Machine/Vehicle</th>
-            <th>Operators</th>
-            <th>Average</th>
-            <th>Remark</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>🚜 सर्वात चांगले Machine Average</td>
-            <td>${bestMachine ? bestMachine.machine : "-"}</td>
-            <td>${bestMachine ? bestMachine.operators : "-"}</td>
-            <td>${
-              bestMachine ? bestMachine.avgDiesel.toFixed(2) + " L/hr" : "-"
-            }</td>
-            <td>👏 अभिनंदन !</td>
-          </tr>
-          <tr>
-            <td>🚚 सर्वात चांगले Vehicle Average</td>
-            <td>${bestVehicle ? bestVehicle.machine : "-"}</td>
-            <td>${bestVehicle ? bestVehicle.operators : "-"}</td>
-            <td>${
-              bestVehicle ? bestVehicle.avgDiesel.toFixed(2) + " Km/L" : "-"
-            }</td>
-            <td>👏 अभिनंदन !</td>
-          </tr>
-          <tr>
-            <td>🚜 सर्वात खराब Machine Average</td>
-            <td>${worstMachine ? worstMachine.machine : "-"}</td>
-            <td>${worstMachine ? worstMachine.operators : "-"}</td>
-            <td>${
-              worstMachine ? worstMachine.avgDiesel.toFixed(2) + " L/hr" : "-"
-            }</td>
-            <td>⚠️ खबरदारी घ्या</td>
-          </tr>
-          <tr>
-            <td>🚚 सर्वात खराब Vehicle Average</td>
-            <td>${worstVehicle ? worstVehicle.machine : "-"}</td>
-            <td>${worstVehicle ? worstVehicle.operators : "-"}</td>
-            <td>${
-              worstVehicle ? worstVehicle.avgDiesel.toFixed(2) + " Km/L" : "-"
-            }</td>
-            <td>⚠️ सुधारणा करणे</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>`;
-
-        document.getElementById("summaryDiv").innerHTML = html;
-      }
 
       function updateDashboard() {
         let machineFilter = document.getElementById("dashMachine").value;
@@ -1643,7 +1648,7 @@
               return !machineFilter || r["मशीन"] === machineFilter;
             });
 
-            updateSummary(filteredAll);
+            renderMachineDeviationTable(filteredAll);
 
             let totalHours = 0,
               totalDiesel = 0;
