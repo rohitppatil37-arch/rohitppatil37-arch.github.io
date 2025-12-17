@@ -359,6 +359,22 @@
   color: #d97706;
   font-weight: 700;
 }
+      .row-green {
+  background: rgba(0, 200, 0, 0.12);
+}
+
+.row-orange {
+  background: rgba(255, 165, 0, 0.18);
+}
+
+.row-red {
+  background: rgba(255, 0, 0, 0.12);
+}
+      /* Hover highlight for dashboard table */
+#machineDeviationTable tbody tr:hover {
+  outline: 2px solid rgba(0, 0, 0, 0.25);
+  outline-offset: -2px;
+}
     </style>
   </head>
   <body>
@@ -637,22 +653,18 @@
       </div>
 
       <div class="dash-col">
-        <div id="summaryDiv" class="dash-card card" style="margin-top: 16px">
-          🔄 गणना करत आहे...
-        </div>
         <div class="dash-card card" style="margin-top:16px">
   <div style="font-weight:800;color:#0b3a66;margin-bottom:8px">
-    ⚙️ मशीननुसार डिझेल वापर स्थिती
+    ⚙️ मशीन / वाहननुसार डिझेल वापर स्थिती
   </div>
 
   <div class="table-container">
     <table id="machineDeviationTable">
       <thead>
         <tr>
-          <th>मशीन</th>
-          <th>मानक (लि/तास)</th>
-          <th>प्रत्यक्ष (लि/तास)</th>
-          <th>फरक %</th>
+          <th>मशीन / वाहन</th>
+          <th>मानक सरासरी</th>
+<th>प्रत्यक्ष सरासरी</th>
           <th>स्थिती</th>
           <th>कल</th>
         </tr>
@@ -967,29 +979,30 @@
       }
 
       function getRateForMachine(machine) {
-        if (machine.includes("जेसीबी")) return machineRates["जेसीबी"];
-        if (machine.includes("सॅनी")) return machineRates["सॅनी"];
-        if (machine.includes("टाटा हिताची")) return machineRates["टाटा हिताची"];
-        if (machine.includes("शांतुई")) return machineRates["शांतुई"];
-        if (machine.includes("बीईएमएल")) return machineRates["बीईएमएल"];
-        if (vehicleRates[machine]) return vehicleRates[machine];
-        return 10;
-      }
-function getDeviationStatus(dev) {
-  if (dev < 0)
-    return { text: "🟢 कमी डिझेल वापरले", cls: "green" };
-
-  if (dev === 0)
-    return { text: "🟡 योग्य डिझेल वापरले", cls: "orange" };
-
-  return { text: "🔴 जास्त डिझेल वापरले", cls: "red" };
+  if (machine.includes("जेसीबी")) return machineRates["जेसीबी"];
+  if (machine.includes("सॅनी")) return machineRates["सॅनी"];
+  if (machine.includes("टाटा हिताची")) return machineRates["टाटा हिताची"];
+  if (machine.includes("शांतुई")) return machineRates["शांतुई"];
+  if (machine.includes("बीईएमएल")) return machineRates["बीईएमएल"];
+  return 10; // default machine rate only
 }
+function getDeviationStatus(dev) {
+  if (dev < -1)
+    return { text: "कमी डिझेल वापरले", rowCls: "row-green" };
+
+  if (dev >= -1 && dev <= 1)
+    return { text: "योग्य डिझेल वापरले", rowCls: "row-orange" };
+
+  return { text: "जास्त डिझेल वापरले", rowCls: "row-red" };
+}
+
 
 function deviationColor(dev) {
-  if (dev < 0) return "green";
-  if (dev === 0) return "yellow";
+  if (dev < -1) return "green";
+  if (dev >= -1 && dev <= 1) return "yellow";
   return "red";
 }
+
 function buildMachineHistory(records, days = 7) {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
@@ -1003,13 +1016,34 @@ function buildMachineHistory(records, days = 7) {
     const machine = r["मशीन"];
     if (!machine) return;
 
-    const hrs = toNumber(r["Dashboard एकूण (तास/km)"]);
+    const work = toNumber(r["Dashboard एकूण (तास/km)"]);
     const diesel = toNumber(r["डिझेल (लिटर)"]);
-    if (hrs <= 0) return;
+    if (work <= 0 || diesel <= 0) return;
 
-    const std = getRateForMachine(machine);
-    let dev = ((diesel / hrs - std) / std) * 100;
-    dev = Number(dev.toFixed(1));
+    let actualAvg, standardAvg;
+
+    // 🚚 Vehicle
+    if (vehicleRates[machine]) {
+      actualAvg = work / diesel;        // km/l
+      standardAvg = vehicleRates[machine];
+    }
+    // ⚙️ Machine
+    else {
+      actualAvg = diesel / work;        // l/hr
+      standardAvg = getRateForMachine(machine);
+    }
+
+    let dev;
+
+if (vehicleRates[machine]) {
+  // Vehicle → जास्त km/l = चांगले
+  dev = ((standardAvg - actualAvg) / standardAvg) * 100;
+} else {
+  // Machine → कमी l/hr = चांगले
+  dev = ((actualAvg - standardAvg) / standardAvg) * 100;
+}
+
+dev = Number(dev.toFixed(1));
 
     if (!history[machine]) history[machine] = [];
     history[machine].push({
@@ -1024,6 +1058,7 @@ function buildMachineHistory(records, days = 7) {
 
   return history;
 }
+
 
 function detectTrend(colors) {
   if (colors.length < 3) return "—";
@@ -1055,9 +1090,6 @@ function renderMachineDeviationTable(records) {
     const machine = r["मशीन"];
     if (!machine) return;
 
-    const type = r["सयंत्राचा प्रकार"];
-    if (type !== "डोझर/एक्स्कॅव्हेटर") return;
-
     const hrs = toNumber(r["Dashboard एकूण (तास/km)"]);
     const diesel = toNumber(r["डिझेल (लिटर)"]);
     if (hrs <= 0) return;
@@ -1073,33 +1105,65 @@ function renderMachineDeviationTable(records) {
   const history = buildMachineHistory(records, 7);
 
   Object.values(group).forEach(g => {
-    const std = getRateForMachine(g.machine);
-    const actual = g.totalDiesel / g.totalHours;
+    let actualAvg, standardAvg;
 
-    let dev = ((actual - std) / std) * 100;
-    dev = Number(dev.toFixed(1));
+// 🚚 VEHICLE
+if (vehicleRates[g.machine]) {
+  // g.totalHours = किमी
+  actualAvg = g.totalHours / g.totalDiesel;   // km per litre
+  standardAvg = vehicleRates[g.machine];
+}
+// ⚙️ MACHINE
+else {
+  // g.totalHours = तास
+  actualAvg = g.totalDiesel / g.totalHours;   // litre per hour
+  standardAvg = getRateForMachine(g.machine);
+}
 
-    const status = getDeviationStatus(dev);
+actualAvg = Number(actualAvg.toFixed(1));
+standardAvg = Number(standardAvg.toFixed(1));
+
+if (!isFinite(actualAvg) || !isFinite(standardAvg)) return;
+
+let dev;
+
+if (vehicleRates[g.machine]) {
+  // vehicle: जास्त km/l = चांगले
+  dev = ((standardAvg - actualAvg) / standardAvg) * 100;
+} else {
+  // machine: कमी l/hr = चांगले
+  dev = ((actualAvg - standardAvg) / standardAvg) * 100;
+}
+
+dev = Number(dev.toFixed(1));
+
+
+const status = getDeviationStatus(dev);
+
+    
     const colors = history[g.machine]
       ? history[g.machine].map(h => h.color)
       : [];
     const trend = detectTrend(colors);
 
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${g.machine}</td>
-      <td>${std}</td>
-      <td>${actual.toFixed(1)}</td>
-      <td>${dev}%</td>
-      <td class="${status.cls}">${status.text}</td>
-      <td>${trend}</td>
-    `;
+tr.className = status.rowCls;
+
+tr.innerHTML = `
+  <td><strong>${g.machine}</strong></td>
+  <td>${standardAvg}</td>
+  <td>${actualAvg}</td>
+  <td>${status.text}</td>
+  <td>${trend}</td>
+`;
+
     tbody.appendChild(tr);
   });
 
   if (!tbody.children.length) {
     tbody.innerHTML =
-      `<tr><td colspan="6">डेटा उपलब्ध नाही</td></tr>`;
+      `<tr><td colspan="5">डेटा उपलब्ध नाही</td>
+</tr>`;
   }
 }
 
