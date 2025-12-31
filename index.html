@@ -1126,7 +1126,7 @@ else {
   standardAvg = getRateForMachine(g.machine);
 }
 
-actualAvg = Number(actualAvg.toFixed(1));
+actualAvg = Number(actualAvg.toFixed(2));
 standardAvg = Number(standardAvg.toFixed(1));
 
 if (!isFinite(actualAvg) || !isFinite(standardAvg)) return;
