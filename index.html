@@ -1752,13 +1752,14 @@ tr.innerHTML = `
     return;
   }
 
-  let totalHours = 0;
-  let totalDiesel = 0;
+  // STEP-1: total work (km or hours) & diesel
+let totalWork = 0;
+let totalDiesel = 0;
 
-  filtered.forEach(r => {
-    totalHours += toNumber(r.totalHoursReading);
-    totalDiesel += toNumber(r.dieselQty);
-  });
+filtered.forEach(r => {
+  totalWork += toNumber(r.totalHoursReading);
+  totalDiesel += toNumber(r.dieselQty);
+});
 
   let machineName = machineFilter || filtered[0].machine;
 
@@ -1766,16 +1767,25 @@ tr.innerHTML = `
   const workUnit = isVehicle ? "किमी" : "तास";
 
   document.getElementById("dashTotal").textContent =
-    `⏱ ${totalHours.toFixed(1)} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर`;
+  `⏱ ${totalWork.toFixed(1)} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर | 📊 Avg ${average.toFixed(2)} ${avgLabel}`;
 
   document.getElementById("dashCount").textContent = filtered.length;
 
   let allowed = 0;
-  if (isVehicle) {
-    allowed = totalHours / vehicleRates[machineName];
-  } else {
-    allowed = getRateForMachine(machineName) * totalHours;
-  }
+let average = 0;
+let avgLabel = "";
+
+if (isVehicle) {
+  // 🚚 Vehicle → km/l
+  average = totalWork / totalDiesel;        // km ÷ litre
+  allowed = totalWork / vehicleRates[machineName];
+  avgLabel = "Km/L";
+} else {
+  // 🚜 Machine → litre/hour
+  average = totalDiesel / totalWork;        // litre ÷ hour
+  allowed = getRateForMachine(machineName) * totalWork;
+  avgLabel = "Ltr/Hr";
+}
 
   let tbody = document.querySelector("#dashTable tbody");
   tbody.innerHTML = "";
@@ -1786,7 +1796,7 @@ tr.innerHTML = `
   tbody.innerHTML = `
     <tr>
       <td>${machineName}</td>
-      <td>${totalHours.toFixed(1)} ${workUnit}</td>
+      <td>${totalWork.toFixed(1)} ${workUnit}</td>
       <td>${totalDiesel.toFixed(1)} लिटर</td>
       <td>${allowed.toFixed(1)} लिटर</td>
       <td class="${remarkClass}">${remark}</td>
