@@ -1035,14 +1035,14 @@ function buildMachineHistory(records, days = 7) {
   const history = {};
 
   records.forEach(r => {
-    const date = parseSheetDate(r["दिनांक"]);
+    const date = parseSheetDate(r.today);
 if (!date || date < cutoff) return;
 
-    const machine = r["मशीन"];
+    const machine = r.machine;
     if (!machine) return;
 
-    const work = toNumber(r["Dashboard एकूण (तास/km)"]);
-    const diesel = toNumber(r["डिझेल (लिटर)"]);
+    const work = toNumber(r.totalHoursReading);
+    const diesel = toNumber(r.dieselQty);
     if (work <= 0 || diesel <= 0) return;
 
     let actualAvg, standardAvg;
@@ -1112,11 +1112,11 @@ function renderMachineDeviationTable(records) {
   let group = {};
 
   records.forEach(r => {
-    const machine = r["मशीन"];
+    const machine = r.machine;
     if (!machine) return;
 
-    const hrs = toNumber(r["Dashboard एकूण (तास/km)"]);
-const diesel = toNumber(r["डिझेल (लिटर)"]);
+    const hrs = toNumber(r.totalHoursReading);
+const diesel = toNumber(r.dieselQty);
 
 if (hrs <= 0 || diesel <= 0) return;
 
@@ -1728,7 +1728,7 @@ tr.innerHTML = `
           .then((data) => {
             let filteredAll = data.filter((r) => {
               if (startDate && endDate) {
-                let d = parseSheetDate(r["दिनांक"]);
+                let d = parseSheetDate(r.today);
 if (!d) return false;
 return d >= new Date(startDate) && d <= new Date(endDate);
               }
@@ -1736,7 +1736,7 @@ return d >= new Date(startDate) && d <= new Date(endDate);
             });
 
             let filtered = filteredAll.filter((r) => {
-              return !machineFilter || r["मशीन"] === machineFilter;
+              return !machineFilter || r.machine === machineFilter;
             });
 
             renderMachineDeviationTable(filteredAll);
@@ -1744,8 +1744,8 @@ return d >= new Date(startDate) && d <= new Date(endDate);
             let totalHours = 0,
               totalDiesel = 0;
             filtered.forEach((r) => {
-              totalHours += toNumber(r["Dashboard एकूण (तास/km)"]);
-              totalDiesel += toNumber(r["डिझेल (लिटर)"]);
+              totalHours += toNumber(r.totalHoursReading);
+              totalDiesel += toNumber(r.dieselQty);
             });
 
             let machineName = machineFilter
