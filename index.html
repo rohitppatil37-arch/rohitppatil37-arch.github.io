@@ -982,6 +982,26 @@
         const n = parseFloat(s);
         return Number.isFinite(n) ? n : 0;
       }
+function parseSheetDate(d) {
+  if (!d) return null;
+
+  if (typeof d === "string") {
+    // YYYY-MM-DD
+    if (d.includes("-")) {
+      const dt = new Date(d);
+      return isNaN(dt) ? null : dt;
+    }
+
+    // DD/MM/YYYY
+    if (d.includes("/")) {
+      const [dd, mm, yyyy] = d.split("/");
+      return new Date(yyyy, mm - 1, dd);
+    }
+  }
+
+  const dt = new Date(d);
+  return isNaN(dt) ? null : dt;
+}
 
       function getRateForMachine(machine) {
   if (machine.includes("जेसीबी")) return machineRates["जेसीबी"];
@@ -1015,8 +1035,8 @@ function buildMachineHistory(records, days = 7) {
   const history = {};
 
   records.forEach(r => {
-    const date = new Date(r["दिनांक"]);
-    if (date < cutoff) return;
+    const date = parseSheetDate(r["दिनांक"]);
+if (!date || date < cutoff) return;
 
     const machine = r["मशीन"];
     if (!machine) return;
@@ -1096,8 +1116,9 @@ function renderMachineDeviationTable(records) {
     if (!machine) return;
 
     const hrs = toNumber(r["Dashboard एकूण (तास/km)"]);
-    const diesel = toNumber(r["डिझेल (लिटर)"]);
-    if (hrs <= 0) return;
+const diesel = toNumber(r["डिझेल (लिटर)"]);
+
+if (hrs <= 0 || diesel <= 0) return;
 
     if (!group[machine]) {
       group[machine] = { machine, totalHours: 0, totalDiesel: 0 };
@@ -1694,7 +1715,10 @@ tr.innerHTML = `
       });
 
 
-      function updateDashboard() {
+      function updateDashboard() {if (!records || !records.length) {
+  console.warn("No records loaded");
+  return;
+}
         let machineFilter = document.getElementById("dashMachine").value;
         let startDate = document.getElementById("startDate").value;
         let endDate = document.getElementById("endDate").value;
@@ -1706,8 +1730,9 @@ tr.innerHTML = `
           .then((data) => {
             let filteredAll = data.filter((r) => {
               if (startDate && endDate) {
-                let d = new Date(r["दिनांक"]);
-                return d >= new Date(startDate) && d <= new Date(endDate);
+                let d = parseSheetDate(r["दिनांक"]);
+if (!d) return false;
+return d >= new Date(startDate) && d <= new Date(endDate);
               }
               return true;
             });
@@ -1936,7 +1961,8 @@ tr.innerHTML = `
           const dateStr = row["दिनांक"];
           if (!dateStr) return false;
 
-          const rowDate = new Date(dateStr);
+          const rowDate = parseSheetDate(dateStr);
+if (!rowDate) return false;
           return rowDate >= startDate && rowDate <= endDate;
         });
       }
