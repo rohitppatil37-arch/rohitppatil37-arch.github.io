@@ -1723,9 +1723,7 @@ tr.innerHTML = `
         let startDate = document.getElementById("startDate").value;
         let endDate = document.getElementById("endDate").value;
 
-        fetch(
-          "https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1"
-        )
+        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
           .then((res) => res.json())
           .then((data) => {
             let filteredAll = data.filter((r) => {
@@ -1838,9 +1836,7 @@ return d >= new Date(startDate) && d <= new Date(endDate);
       });
 
       function loadDataFromSheet() {
-        fetch(
-          "https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1"
-        )
+        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
           .then((res) => res.json())
           .then((data) => {
             records = data;
@@ -1921,9 +1917,7 @@ return d >= new Date(startDate) && d <= new Date(endDate);
         document.getElementById("monthlyReportLink").innerHTML = "";
 
         // Fetch data from the spreadsheet
-        fetch(
-          "https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1"
-        )
+        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
           .then((response) => response.json())
           .then((data) => {
             const reportData = filterDataByMonth(data, month);
@@ -2027,9 +2021,7 @@ if (!rowDate) return false;
           "⏳ विस्तृत रिपोर्ट तयार करत आहे...";
         document.getElementById("monthlyReportLink").innerHTML = "";
 
-        fetch(
-          "https://opensheet.elk.sh/1DvrWe99U3qLPm0Zko77zZfPjnbiT3PwEaRY5dP2t820/Sheet1"
-        )
+        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
           .then((response) => response.json())
           .then((data) => {
             const reportData = filterDataByMonth(data, month);
