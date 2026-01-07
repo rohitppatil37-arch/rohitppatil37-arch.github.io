@@ -1718,7 +1718,6 @@ tr.innerHTML = `
       function updateDashboard() {
 
   if (!Array.isArray(records) || records.length === 0) {
-    console.warn("No records loaded");
     document.querySelector("#dashTable tbody").innerHTML =
       `<tr><td colspan="5">डेटा उपलब्ध नाही</td></tr>`;
     return;
@@ -1728,7 +1727,6 @@ tr.innerHTML = `
   let startDate = document.getElementById("startDate").value;
   let endDate = document.getElementById("endDate").value;
 
-  // ✅ ONLY records वापर
   let filteredAll = records.filter(r => {
     if (startDate && endDate) {
       let d = parseSheetDate(r.today);
@@ -1752,48 +1750,46 @@ tr.innerHTML = `
     return;
   }
 
-  // STEP-1: total work (km or hours) & diesel
-let totalWork = 0;
-let totalDiesel = 0;
+  // ✅ STEP-1: totals
+  let totalWork = 0;
+  let totalDiesel = 0;
 
-filtered.forEach(r => {
-  totalWork += toNumber(r.totalHoursReading);
-  totalDiesel += toNumber(r.dieselQty);
-});
+  filtered.forEach(r => {
+    totalWork += toNumber(r.totalHoursReading);
+    totalDiesel += toNumber(r.dieselQty);
+  });
 
+  // ✅ STEP-2: identify machine
   let machineName = machineFilter || filtered[0].machine;
-
-  const isVehicle = Object.prototype.hasOwnProperty.call(vehicleRates, machineName);
+  const isVehicle = vehicleRates.hasOwnProperty(machineName);
   const workUnit = isVehicle ? "किमी" : "तास";
 
+  // ✅ STEP-3: average + allowed
+  let average = 0;
+  let avgLabel = "";
+  let allowed = 0;
+
+  if (isVehicle) {
+    average = totalWork / totalDiesel;          // km/l
+    allowed = totalWork / vehicleRates[machineName];
+    avgLabel = "Km/L";
+  } else {
+    average = totalDiesel / totalWork;          // l/hr
+    allowed = getRateForMachine(machineName) * totalWork;
+    avgLabel = "Ltr/Hr";
+  }
+
+  // ✅ STEP-4: dashboard summary (NOW variables exist)
   document.getElementById("dashTotal").textContent =
-  `⏱ ${totalWork.toFixed(1)} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर | 📊 Avg ${average.toFixed(2)} ${avgLabel}`;
+    `⏱ ${totalWork.toFixed(1)} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर | 📊 Avg ${average.toFixed(2)} ${avgLabel}`;
 
   document.getElementById("dashCount").textContent = filtered.length;
 
-  let allowed = 0;
-let average = 0;
-let avgLabel = "";
-
-if (isVehicle) {
-  // 🚚 Vehicle → km/l
-  average = totalWork / totalDiesel;        // km ÷ litre
-  allowed = totalWork / vehicleRates[machineName];
-  avgLabel = "Km/L";
-} else {
-  // 🚜 Machine → litre/hour
-  average = totalDiesel / totalWork;        // litre ÷ hour
-  allowed = getRateForMachine(machineName) * totalWork;
-  avgLabel = "Ltr/Hr";
-}
-
-  let tbody = document.querySelector("#dashTable tbody");
-  tbody.innerHTML = "";
-
+  // ✅ STEP-5: table
   const remark = totalDiesel <= allowed ? "योग्य" : "जास्त";
   const remarkClass = totalDiesel <= allowed ? "green" : "red";
 
-  tbody.innerHTML = `
+  document.querySelector("#dashTable tbody").innerHTML = `
     <tr>
       <td>${machineName}</td>
       <td>${totalWork.toFixed(1)} ${workUnit}</td>
@@ -1803,7 +1799,7 @@ if (isVehicle) {
     </tr>
   `;
 
-  // ===== Chart =====
+  // ✅ STEP-6: chart
   if (chart) chart.destroy();
   chart = new Chart(document.getElementById("consumptionGraph"), {
     type: "bar",
@@ -1813,19 +1809,14 @@ if (isVehicle) {
         {
           label: "Allowed (लिटर)",
           data: [allowed.toFixed(1)],
-          backgroundColor: "rgba(54,162,235,0.6)",
         },
         {
           label: "Actual (लिटर)",
           data: [totalDiesel.toFixed(1)],
-          backgroundColor: "rgba(255,99,132,0.6)",
         },
       ],
     },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: "top" } },
-    },
+    options: { responsive: true }
   });
 }
 
@@ -1834,21 +1825,22 @@ if (isVehicle) {
     .then(res => res.json())
     .then(raw => {
 
-      // 🔁 Marathi → English normalize
+      // ✅ EXACT keys that updateDashboard expects
       records = raw.map(r => ({
         today: r["दिनांक"],
         machine: r["मशीन"],
-        dieselQty: r["डिझेल (लिटर)"],
-        totalHoursReading: r["Dashboard एकूण (तास/km)"],
+        totalHoursReading: Number(r["Dashboard एकूण (तास/km)"]) || 0,
+        dieselQty: Number(r["डिझेल (लिटर)"]) || 0,
         machineType: r["सयंत्राचा प्रकार"],
         project: r["प्रकल्पाचे नाव"]
       }));
 
-      console.log("Normalized record:", records[0]);
       updateDashboard();
     })
-    .catch(err => console.error("लोडिंगमध्ये अडचण:", err));
+    .catch(err => console.error("Load error:", err));
 }
+
+
       function redirectToDashboard() {
         document.getElementById("formPage").style.display = "none";
         document.getElementById("dashboardPage").style.display = "block";
