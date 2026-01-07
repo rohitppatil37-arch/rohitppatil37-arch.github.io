@@ -1822,14 +1822,23 @@ tr.innerHTML = `
       function loadDataFromSheet() {
   fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
     .then(res => res.json())
-    .then(data => {
-      console.log("API DATA LENGTH:", data.length);
-      records = data;   // ✅ DIRECT ASSIGN
+    .then(raw => {
+
+      // 🔁 Marathi → English normalize
+      records = raw.map(r => ({
+        today: r["दिनांक"],
+        machine: r["मशीन"],
+        dieselQty: r["डिझेल (लिटर)"],
+        totalHoursReading: r["Dashboard एकूण (तास/km)"],
+        machineType: r["सयंत्राचा प्रकार"],
+        project: r["प्रकल्पाचे नाव"]
+      }));
+
+      console.log("Normalized record:", records[0]);
       updateDashboard();
     })
     .catch(err => console.error("लोडिंगमध्ये अडचण:", err));
 }
-
       function redirectToDashboard() {
         document.getElementById("formPage").style.display = "none";
         document.getElementById("dashboardPage").style.display = "block";
