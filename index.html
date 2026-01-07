@@ -1715,132 +1715,116 @@ tr.innerHTML = `
       });
 
 
-      function updateDashboard() {if (!records || !records.length) {
-  console.warn("No records loaded");
-  return;
+      function updateDashboard() {
+
+  if (!Array.isArray(records) || records.length === 0) {
+    console.warn("No records loaded");
+    document.querySelector("#dashTable tbody").innerHTML =
+      `<tr><td colspan="5">डेटा उपलब्ध नाही</td></tr>`;
+    return;
+  }
+
+  let machineFilter = document.getElementById("dashMachine").value;
+  let startDate = document.getElementById("startDate").value;
+  let endDate = document.getElementById("endDate").value;
+
+  // ✅ ONLY records वापर
+  let filteredAll = records.filter(r => {
+    if (startDate && endDate) {
+      let d = parseSheetDate(r.today);
+      if (!d) return false;
+      return d >= new Date(startDate) && d <= new Date(endDate);
+    }
+    return true;
+  });
+
+  let filtered = filteredAll.filter(r => {
+    return !machineFilter || r.machine === machineFilter;
+  });
+
+  renderMachineDeviationTable(filteredAll);
+
+  if (filtered.length === 0) {
+    document.querySelector("#dashTable tbody").innerHTML =
+      `<tr><td colspan="5">डेटा उपलब्ध नाही</td></tr>`;
+    document.getElementById("dashTotal").textContent = "";
+    document.getElementById("dashCount").textContent = "0";
+    return;
+  }
+
+  let totalHours = 0;
+  let totalDiesel = 0;
+
+  filtered.forEach(r => {
+    totalHours += toNumber(r.totalHoursReading);
+    totalDiesel += toNumber(r.dieselQty);
+  });
+
+  let machineName = machineFilter || filtered[0].machine;
+
+  const isVehicle = Object.prototype.hasOwnProperty.call(vehicleRates, machineName);
+  const workUnit = isVehicle ? "किमी" : "तास";
+
+  document.getElementById("dashTotal").textContent =
+    `⏱ ${totalHours.toFixed(1)} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर`;
+
+  document.getElementById("dashCount").textContent = filtered.length;
+
+  let allowed = 0;
+  if (isVehicle) {
+    allowed = totalHours / vehicleRates[machineName];
+  } else {
+    allowed = getRateForMachine(machineName) * totalHours;
+  }
+
+  let tbody = document.querySelector("#dashTable tbody");
+  tbody.innerHTML = "";
+
+  const remark = totalDiesel <= allowed ? "योग्य" : "जास्त";
+  const remarkClass = totalDiesel <= allowed ? "green" : "red";
+
+  tbody.innerHTML = `
+    <tr>
+      <td>${machineName}</td>
+      <td>${totalHours.toFixed(1)} ${workUnit}</td>
+      <td>${totalDiesel.toFixed(1)} लिटर</td>
+      <td>${allowed.toFixed(1)} लिटर</td>
+      <td class="${remarkClass}">${remark}</td>
+    </tr>
+  `;
+
+  // ===== Chart =====
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("consumptionGraph"), {
+    type: "bar",
+    data: {
+      labels: [machineName],
+      datasets: [
+        {
+          label: "Allowed (लिटर)",
+          data: [allowed.toFixed(1)],
+          backgroundColor: "rgba(54,162,235,0.6)",
+        },
+        {
+          label: "Actual (लिटर)",
+          data: [totalDiesel.toFixed(1)],
+          backgroundColor: "rgba(255,99,132,0.6)",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: "top" } },
+    },
+  });
 }
-        let machineFilter = document.getElementById("dashMachine").value;
-        let startDate = document.getElementById("startDate").value;
-        let endDate = document.getElementById("endDate").value;
-
-        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
-          .then((res) => res.json())
-          .then((data) => {
-            let filteredAll = data.filter((r) => {
-              if (startDate && endDate) {
-                let d = parseSheetDate(r.today);
-if (!d) return false;
-return d >= new Date(startDate) && d <= new Date(endDate);
-              }
-              return true;
-            });
-
-            let filtered = filteredAll.filter((r) => {
-              return !machineFilter || r.machine === machineFilter;
-            });
-
-            renderMachineDeviationTable(filteredAll);
-
-            let totalHours = 0,
-              totalDiesel = 0;
-            filtered.forEach((r) => {
-              totalHours += toNumber(r.totalHoursReading);
-              totalDiesel += toNumber(r.dieselQty);
-            });
-
-            let machineName = machineFilter
-              ? machineFilter
-              : filtered[0]
-              ? filtered[0]["मशीन"]
-              : "N/A";
-            const isVehicle = Object.prototype.hasOwnProperty.call(
-              vehicleRates,
-              machineName
-            );
-            const workUnit = isVehicle ? "किमी" : "तास";
-
-            document.getElementById(
-              "dashTotal"
-            ).textContent = `⏱ ${totalHours.toFixed(
-              1
-            )} ${workUnit}, ⛽ ${totalDiesel.toFixed(1)} लिटर`;
-
-            document.getElementById("dashCount").textContent = filtered.length;
-
-            let allowed = 0;
-            if (
-              machineName &&
-              Object.prototype.hasOwnProperty.call(vehicleRates, machineName)
-            ) {
-              allowed = totalHours / vehicleRates[machineName];
-            } else {
-              let rate = getRateForMachine(machineName);
-              allowed = rate * totalHours;
-            }
-
-            let tbody = document.querySelector("#dashTable tbody");
-            tbody.innerHTML = "";
-            if (filtered.length) {
-              const remark = totalDiesel <= allowed ? "योग्य" : "जास्त";
-              const remarkClass = totalDiesel <= allowed ? "green" : "red";
-
-              let row = document.createElement("tr");
-              row.innerHTML = `
-          <td>${machineName}</td>
-          <td>${totalHours.toFixed(1)} ${workUnit}</td>
-          <td>${totalDiesel.toFixed(1)} लिटर</td>
-          <td>${allowed.toFixed(1)} लिटर</td>
-          <td class="${remarkClass}">${remark}</td>`;
-              tbody.appendChild(row);
-            } else {
-              tbody.innerHTML = `<tr><td colspan="5">डेटा उपलब्ध नाही</td></tr>`;
-            }
-
-            let labels = [];
-            let allowedData = [];
-            let actualData = [];
-            if (filtered.length) {
-              labels = [machineName];
-              allowedData = [allowed.toFixed(1)];
-              actualData = [totalDiesel.toFixed(1)];
-            }
-            if (chart) chart.destroy();
-            chart = new Chart(document.getElementById("consumptionGraph"), {
-              type: "bar",
-              data: {
-                labels,
-                datasets: [
-                  {
-                    label: `Allowed (लिटर)`,
-                    data: allowedData,
-                    backgroundColor: "rgba(54,162,235,0.6)",
-                  },
-                  {
-                    label: `Actual (लिटर)`,
-                    data: actualData,
-                    backgroundColor: "rgba(255,99,132,0.6)",
-                  },
-                ],
-              },
-              options: {
-                responsive: true,
-                plugins: { legend: { position: "top" } },
-              },
-            });
-          });
-      }
-
-      document.getElementById("dashFetchBtn").addEventListener("click", (e) => {
-        e.preventDefault();
-        updateDashboard();
-      });
 
       function loadDataFromSheet() {
   fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
     .then(res => res.json())
-    .then(res => {
-      // 👉 Apps Script safety handling
-      records = Array.isArray(res) ? res : (res.data || []);
+    .then(data => {
+      console.log("API DATA LENGTH:", data.length);
+      records = data;   // ✅ DIRECT ASSIGN
       updateDashboard();
     })
     .catch(err => console.error("लोडिंगमध्ये अडचण:", err));
