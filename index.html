@@ -1836,14 +1836,15 @@ return d >= new Date(startDate) && d <= new Date(endDate);
       });
 
       function loadDataFromSheet() {
-        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
-          .then((res) => res.json())
-          .then((data) => {
-            records = data;
-            updateDashboard();
-          })
-          .catch((err) => console.error("लोडिंगमध्ये अडचण:", err));
-      }
+  fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
+    .then(res => res.json())
+    .then(res => {
+      // 👉 Apps Script safety handling
+      records = Array.isArray(res) ? res : (res.data || []);
+      updateDashboard();
+    })
+    .catch(err => console.error("लोडिंगमध्ये अडचण:", err));
+}
 
       function redirectToDashboard() {
         document.getElementById("formPage").style.display = "none";
