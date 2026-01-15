@@ -1118,7 +1118,14 @@ function renderMachineDeviationTable(records) {
     const hrs = toNumber(r.totalHoursReading);
 const diesel = toNumber(r.dieselQty);
 
-if (hrs <= 0 || diesel <= 0) return;
+if (vehicleRates[r.machine]) {
+  // 🚛 Vehicle: km & diesel compulsory
+  if (hrs <= 0 || diesel <= 0) return;
+} else {
+  // ⚙️ Machine: hours & diesel compulsory
+  if (hrs <= 0 || diesel <= 0) return;
+}
+
 
     if (!group[machine]) {
       group[machine] = { machine, totalHours: 0, totalDiesel: 0 };
