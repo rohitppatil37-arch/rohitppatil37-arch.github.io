@@ -1849,10 +1849,15 @@ tr.innerHTML = `
 
 
       function redirectToDashboard() {
-        document.getElementById("formPage").style.display = "none";
-        document.getElementById("dashboardPage").style.display = "block";
-        updateDashboard();
-      }
+  document.getElementById('formPage').style.display = 'none';
+  document.getElementById('dashboardPage').style.display = 'block';
+  
+  // हे add करा - automatic data load होईल
+  setTimeout(() => {
+    loadDataFromSheet();
+  }, 200);
+}
+
 
       function showFormPage() {
         document.getElementById("dashboardPage").style.display = "none";
