@@ -1545,6 +1545,9 @@ function renderMachineDeviationTable(records) {
         loadDataFromSheet();
         initVoiceForLocation();
       });
+      document
+        .getElementById("dashFetchBtn")
+        .addEventListener("click", updateDashboard);
 
       document
         .getElementById("startReading")
