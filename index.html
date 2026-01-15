@@ -1116,16 +1116,16 @@ function renderMachineDeviationTable(records) {
     if (!machine) return;
 
     const hrs = toNumber(r.totalHoursReading);
-const diesel = toNumber(r.dieselQty);
+    const diesel = toNumber(r.dieselQty);
 
-if (vehicleRates[r.machine]) {
-  // 🚛 Vehicle: km & diesel compulsory
-  if (hrs <= 0 || diesel <= 0) return;
-} else {
-  // ⚙️ Machine: hours & diesel compulsory
-  if (hrs <= 0 || diesel <= 0) return;
-}
-
+    // ✅ VALIDATION (FIXED)
+    if (vehicleRates[machine]) {
+      // 🚛 Vehicle: diesel compulsory, km 0 चालेल
+      if (diesel <= 0) return;
+    } else {
+      // ⚙️ Machine: hours + diesel compulsory
+      if (hrs <= 0 || diesel <= 0) return;
+    }
 
     if (!group[machine]) {
       group[machine] = { machine, totalHours: 0, totalDiesel: 0 };
@@ -1140,64 +1140,51 @@ if (vehicleRates[r.machine]) {
   Object.values(group).forEach(g => {
     let actualAvg, standardAvg;
 
-// 🚚 VEHICLE
-if (vehicleRates[g.machine]) {
-  // g.totalHours = किमी
-  actualAvg = g.totalHours / g.totalDiesel;   // km per litre
-  standardAvg = vehicleRates[g.machine];
-}
-// ⚙️ MACHINE
-else {
-  // g.totalHours = तास
-  actualAvg = g.totalDiesel / g.totalHours;   // litre per hour
-  standardAvg = getRateForMachine(g.machine);
-}
+    // 🚚 VEHICLE
+    if (vehicleRates[g.machine]) {
+      actualAvg = g.totalHours / g.totalDiesel;   // km/l
+      standardAvg = vehicleRates[g.machine];
+    }
+    // ⚙️ MACHINE
+    else {
+      actualAvg = g.totalDiesel / g.totalHours;   // l/hr
+      standardAvg = getRateForMachine(g.machine);
+    }
 
-actualAvg = Number(actualAvg.toFixed(2));
-standardAvg = Number(standardAvg.toFixed(1));
+    actualAvg = Number(actualAvg.toFixed(2));
+    standardAvg = Number(standardAvg.toFixed(1));
 
-if (!isFinite(actualAvg) || !isFinite(standardAvg)) return;
+    if (!isFinite(actualAvg) || !isFinite(standardAvg)) return;
 
-let dev;
+    let dev;
+    if (vehicleRates[g.machine]) {
+      // vehicle: जास्त km/l = चांगले
+      dev = ((standardAvg - actualAvg) / standardAvg) * 100;
+    } else {
+      // machine: कमी l/hr = चांगले
+      dev = ((actualAvg - standardAvg) / standardAvg) * 100;
+    }
 
-if (vehicleRates[g.machine]) {
-  // vehicle: जास्त km/l = चांगले
-  dev = ((standardAvg - actualAvg) / standardAvg) * 100;
-} else {
-  // machine: कमी l/hr = चांगले
-  dev = ((actualAvg - standardAvg) / standardAvg) * 100;
-}
-
-dev = Number(dev.toFixed(1));
-
-
-const status = getDeviationStatus(dev);
-
-    
-    const colors = history[g.machine]
-      ? history[g.machine].map(h => h.color)
-      : [];
-    const trend = detectTrend(colors);
+    dev = Number(dev.toFixed(1));
+    const status = getDeviationStatus(dev);
 
     const tr = document.createElement("tr");
-tr.className = status.rowCls;
-
-tr.innerHTML = `
-  <td><strong>${g.machine}</strong></td>
-  <td>${standardAvg}</td>
-  <td>${actualAvg}</td>
-  <td>${status.text}</td>
-`;
+    tr.className = status.rowCls;
+    tr.innerHTML = `
+      <td><strong>${g.machine}</strong></td>
+      <td>${standardAvg}</td>
+      <td>${actualAvg}</td>
+      <td>${status.text}</td>
+    `;
 
     tbody.appendChild(tr);
   });
 
   if (!tbody.children.length) {
-    tbody.innerHTML =
-      `<tr><td colspan="5">डेटा उपलब्ध नाही</td>
-</tr>`;
+    tbody.innerHTML = `<tr><td colspan="4">डेटा उपलब्ध नाही</td></tr>`;
   }
 }
+
 
       function extractTripCount(text) {
         if (!text) return "";
@@ -1828,11 +1815,10 @@ tr.innerHTML = `
 }
 
       function loadDataFromSheet() {
-  fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec")
+  fetch(scriptURL + "?mode=dashboard")
     .then(res => res.json())
     .then(raw => {
 
-      // ✅ EXACT keys that updateDashboard expects
       records = raw.map(r => ({
         today: r["दिनांक"],
         machine: r["मशीन"],
@@ -1842,9 +1828,10 @@ tr.innerHTML = `
         project: r["प्रकल्पाचे नाव"]
       }));
 
+      console.log("Dashboard records:", records.length);
       updateDashboard();
     })
-    .catch(err => console.error("Load error:", err));
+    .catch(err => console.error("Dashboard load error:", err));
 }
 
 
