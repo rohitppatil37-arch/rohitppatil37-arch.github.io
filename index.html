@@ -855,7 +855,7 @@
     <script>
       const ADMIN_CODE = "123456";
       const scriptURL =
-        "https://script.google.com/macros/s/AKfycbzT-vob4JQLy3ia3Kt26kX9XPOFd0-90zoucFXnLrFWEaO6Vitxpw-k_2SdEi8oIZiPww/exec";
+        "https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec";
 
       const machineRates = {
         जेसीबी: 13,
@@ -1828,7 +1828,7 @@ tr.innerHTML = `
 }
 
       function loadDataFromSheet() {
-  fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
+  fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec")
     .then(res => res.json())
     .then(raw => {
 
@@ -1925,7 +1925,7 @@ tr.innerHTML = `
         document.getElementById("monthlyReportLink").innerHTML = "";
 
         // Fetch data from the spreadsheet
-        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
+        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec")
           .then((response) => response.json())
           .then((data) => {
             const reportData = filterDataByMonth(data, month);
@@ -2029,7 +2029,7 @@ if (!rowDate) return false;
           "⏳ विस्तृत रिपोर्ट तयार करत आहे...";
         document.getElementById("monthlyReportLink").innerHTML = "";
 
-        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec?mode=dashboard")
+        fetch("https://script.google.com/macros/s/AKfycbydTW5yiUdgadu_Cr5QwbgrB4cfo_OkaBNXhu6RIXDLCthBXIENQpkmXwLwyvu-KEu0ZA/exec")
           .then((response) => response.json())
           .then((data) => {
             const reportData = filterDataByMonth(data, month);
